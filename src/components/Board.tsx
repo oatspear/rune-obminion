@@ -5,13 +5,14 @@
 // Imports
 // -----------------------------------------------------------------------------
 
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import {
   Connection,
   ConnectionLineType,
   DefaultEdgeOptions,
   Edge,
   OnConnectStart,
+  Panel,
   ReactFlow,
 } from "@xyflow/react"
 import { useShallow } from "zustand/react/shallow"
@@ -23,6 +24,7 @@ import FloatingEdge from "./FloatingEdge.tsx"
 import TileNode from "./TileNode.tsx"
 
 import "@xyflow/react/dist/style.css"
+import ActionBar from "./ActionBar.tsx"
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -60,13 +62,15 @@ export default function Board(): JSX.Element {
     onConnect,
   } = useAppStore(useShallow(stateSelector))
 
+  const [nodesConnectable, setNodesConnectable] = useState(false)
+
   const onConnectStart: OnConnectStart = useCallback(
     (_event, params) => {
-      if (params.nodeId != null) {
+      if (nodesConnectable && params.nodeId != null) {
         startDragMovement(params.nodeId)
       }
     },
-    [startDragMovement]
+    [nodesConnectable, startDragMovement]
   )
 
   const onConnectEnd = endDragMovement
@@ -116,6 +120,8 @@ export default function Board(): JSX.Element {
         connectOnClick={true}
         nodesDraggable={false}
         elementsSelectable={false}
+        edgesReconnectable={false}
+        nodesConnectable={nodesConnectable}
         fitView
         fitViewOptions={{ minZoom: 0.25 }}
         minZoom={0.25}
@@ -125,7 +131,11 @@ export default function Board(): JSX.Element {
         ]}
         autoPanOnConnect={false}
         proOptions={proOptions}
-      ></ReactFlow>
+      >
+        <Panel position="bottom-left">
+          <ActionBar setNodesConnectable={setNodesConnectable} />
+        </Panel>
+      </ReactFlow>
     </div>
   )
 }

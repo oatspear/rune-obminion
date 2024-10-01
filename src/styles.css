@@ -42,7 +42,7 @@ main {
 
 #board {
   width: 100vw;
-  height: 50vh;
+  height: 100vh;
   background-color: cadetblue;
 }
 
@@ -124,3 +124,9 @@ main {
   stroke-width: 6;
   stroke: #e6e6e6;
 }*/
+
+.react-flow .action-bar {
+  border: 1px solid whitesmoke;
+  background-color: #333;
+  font-weight: bold;
+}
