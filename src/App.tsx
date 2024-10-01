@@ -10,9 +10,7 @@ import { useEffect, useState } from "react"
 import { ReactFlowProvider } from "@xyflow/react"
 
 import selectSoundAudio from "./assets/select.wav"
-import ActionBar from "./components/ActionBar.tsx"
 import Board from "./components/Board.tsx"
-import { DnDProvider } from "./components/DnDContext.tsx"
 import { GameState } from "./logic.ts"
 
 // -----------------------------------------------------------------------------
@@ -48,10 +46,7 @@ export default function App(): JSX.Element {
   return (
     <>
       <ReactFlowProvider>
-        <DnDProvider>
-          <Board />
-          <ActionBar />
-        </DnDProvider>
+        <Board />
       </ReactFlowProvider>
     </>
   )

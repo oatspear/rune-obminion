@@ -13,14 +13,12 @@ import {
   Edge,
   OnConnectStart,
   ReactFlow,
-  useReactFlow,
 } from "@xyflow/react"
 import { useShallow } from "zustand/react/shallow"
 
 import { AppState, TileType } from "../data/types.ts"
 import useAppStore from "../data/store.ts"
 
-import { useDnD } from "./DnDContext.tsx"
 import FloatingEdge from "./FloatingEdge.tsx"
 import TileNode from "./TileNode.tsx"
 
@@ -60,10 +58,7 @@ export default function Board(): JSX.Element {
     endDragMovement,
     isValidMovement,
     onConnect,
-    onDropNode,
   } = useAppStore(useShallow(stateSelector))
-  const [type] = useDnD()
-  const { screenToFlowPosition } = useReactFlow()
 
   const onConnectStart: OnConnectStart = useCallback(
     (_event, params) => {
@@ -83,7 +78,7 @@ export default function Board(): JSX.Element {
     [isValidMovement]
   )
 
-  const onDragOver = useCallback((event: React.DragEvent) => {
+  /*const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"
   }, [])
@@ -101,7 +96,7 @@ export default function Board(): JSX.Element {
       onDropNode(x, y)
     },
     [onDropNode, screenToFlowPosition, type]
-  )
+  )*/
 
   return (
     <div id="board">
@@ -117,8 +112,6 @@ export default function Board(): JSX.Element {
         onConnectEnd={onConnectEnd}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
         nodeClickDistance={2}
         connectOnClick={true}
         nodesDraggable={false}
