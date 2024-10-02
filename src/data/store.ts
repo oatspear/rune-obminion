@@ -14,6 +14,7 @@ import {
   initialNodes,
   isWithinReach,
   mapNodes,
+  tileIdToIndex,
 } from "./board"
 import {
   AppState,
@@ -22,14 +23,28 @@ import {
   TileNodeType,
   UnitReach,
 } from "./types"
+import { BoardState, UnitState } from "../logic"
 
 // -----------------------------------------------------------------------------
 // Data Store
 // -----------------------------------------------------------------------------
 
 const useAppStore = create<AppState>()((set, get) => ({
+  playerIndex: -1,
+  isPlayerTurn: false,
   nodes: mapNodes(initialNodes),
   edges: initialEdges,
+  setBoardState: (board: BoardState) => {
+    const nodes: TileNodeMap = { ...get().nodes }
+    for (const node of Object.values(nodes)) {
+      const i = tileIdToIndex(node.id)
+      const unit: UnitState | null = board[i]
+      if (node.data.unit != unit) {
+        nodes[node.id] = changeData(node, { unit })
+      }
+    }
+    set({ nodes })
+  },
   onNodesChange: (changes) => {
     const onlySelect = changes.filter(isSelectChange)
     const previous = Object.values(get().nodes)
@@ -49,40 +64,89 @@ const useAppStore = create<AppState>()((set, get) => ({
     set({ edges, nodes })
   },
   isValidMovement: (source, target) => {
-    const nodes = get().nodes
-    return !!nodes[target].data.reachable
+    const state = get()
+    if (!state.isPlayerTurn) return false
+    const sourceTile = state.nodes[source]
+    const unit = sourceTile.data.unit
+    if (unit == null || unit.owner != state.playerIndex) return false
+    const targetTile = state.nodes[target]
+    return !!targetTile.data.reachable
   },
-  onConnect: (connection) => {
-    const nodes: TileNodeMap = { ...get().nodes }
-    const source = nodes[connection.source]
-    const target = nodes[connection.target]
-    nodes[source.id] = changeData(source, { uid: 0 })
-    nodes[target.id] = changeData(target, { uid: source.data.uid })
+  spawn1p3mUnit: (id: string) => {
+    const state = get()
+    // is it the player's turn?
+    if (!state.isPlayerTurn) return
+    // is the spawn tile occupied?
+    const node = state.nodes[id]
+    if (node.data.unit != null) return
+    const unit: UnitState = {
+      owner: state.playerIndex,
+      movement: 3,
+      attackDice: 1,
+    }
+    const nodes = {
+      ...state.nodes,
+      [id]: changeData(node, { unit, phantom: true }),
+    }
     set({ nodes })
   },
-  onDropNode: (x: number, y: number) => {
-    const nodes: TileNodeMap = { ...get().nodes }
+  setPlayerTurn: (isPlayerTurn: boolean) => {
+    const state = get()
+    if (state.isPlayerTurn === isPlayerTurn) return
+    let changed = false
+    const nodes = { ...state.nodes }
     for (const node of Object.values(nodes)) {
-      // const inode = getInternalNode(node.id)!
-      const x0 = node.position.x
-      const y0 = node.position.y
-      const w = node.width || 50
-      const h = node.height || 50
-      const x2 = x0 + w
-      const y2 = y0 + h
-      if (x0 > x || x2 < x || y0 > y || y2 < y) {
-        continue
-      }
-      // found node
+      if (!node.data.phantom) continue
+      changed = true
+      nodes[node.id] = changeData(node, { unit: null, phantom: false })
     }
+    if (changed) set({ isPlayerTurn, nodes })
+    else set({ isPlayerTurn })
+  },
+  setPlayerIndex: (playerIndex: number) => {
+    let nodes = get().nodes
+    if (playerIndex === 1 && get().playerIndex !== 1) {
+      nodes = invertBoardView(nodes)
+    }
+    set({ playerIndex, nodes })
   },
 }))
 
 export default useAppStore
 
+// onConnect: (connection) => {
+//   const nodes: TileNodeMap = { ...get().nodes }
+//   const source = nodes[connection.source]
+//   const target = nodes[connection.target]
+//   nodes[source.id] = changeData(source, { unit: null })
+//   nodes[target.id] = changeData(target, { unit: source.data.unit })
+//   set({ nodes })
+// }
+
+// onDropNode: (x: number, y: number) => {
+//   const nodes: TileNodeMap = { ...get().nodes }
+//   for (const node of Object.values(nodes)) {
+//     // const inode = getInternalNode(node.id)!
+//     const x0 = node.position.x
+//     const y0 = node.position.y
+//     const w = node.width || 50
+//     const h = node.height || 50
+//     const x2 = x0 + w
+//     const y2 = y0 + h
+//     if (x0 > x || x2 < x || y0 > y || y2 < y) {
+//       continue
+//     }
+//     // found node
+//   }
+// }
+
 // -----------------------------------------------------------------------------
 // Helper Functions
 // -----------------------------------------------------------------------------
+
+// function indexToID(i: number): string {
+//   return `${i + 1}`
+// }
 
 function isSelectChange(change: NodeChange<TileNodeType>): boolean {
   return change.type === "select"
@@ -101,7 +165,12 @@ function resetReachableNodes(oldNodes: TileNodeMap): TileNodeMap {
   for (const node of Object.values(oldNodes)) {
     if (node.data.reachable) {
       changed = true
-      nodes[node.id] = changeData(node, { reachable: false })
+      const newNode = changeData(node, { reachable: false })
+      newNode.selected = false
+      nodes[node.id] = newNode
+    } else if (node.selected) {
+      changed = true
+      nodes[node.id] = { ...node, selected: false }
     } else {
       nodes[node.id] = node
     }
@@ -153,4 +222,26 @@ function animateMovementEdges(oldEdges: Edge[], reach: UnitReach): Edge[] {
 
 function deanimateEdge(edge: Edge): Edge {
   return edge.animated ? { ...edge, animated: false } : edge
+}
+
+function invertBoardView(oldNodes: TileNodeMap): TileNodeMap {
+  let ox = 0
+  let oy = 0
+  // find max
+  for (const node of Object.values(oldNodes)) {
+    if (node.position.x > ox) {
+      ox = node.position.x
+    }
+    if (node.position.y > oy) {
+      oy = node.position.y
+    }
+  }
+  // invert positions
+  const nodes: TileNodeMap = {}
+  for (const node of Object.values(oldNodes)) {
+    const x = Math.abs(node.position.x - ox)
+    const y = Math.abs(node.position.y - oy)
+    nodes[node.id] = { ...node, position: { x, y } }
+  }
+  return nodes
 }

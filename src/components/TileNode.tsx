@@ -5,15 +5,12 @@
 // Imports
 // -----------------------------------------------------------------------------
 
-import {
-  ConnectionState,
-  Handle,
-  NodeProps,
-  Position,
-  useConnection,
-} from "@xyflow/react"
+import { Handle, NodeProps, Position, useConnection } from "@xyflow/react"
+import { useShallow } from "zustand/react/shallow"
 
-import { TileNodeData, TileNodeType } from "../data/types"
+import { AppState, TileNodeType } from "../data/types"
+import useAppStore from "../data/store"
+import { UnitState } from "../logic"
 
 // -----------------------------------------------------------------------------
 // Component
@@ -21,25 +18,36 @@ import { TileNodeData, TileNodeType } from "../data/types"
 
 export type TileNodeProps = NodeProps<TileNodeType>
 
-export default function TileNode({ id, type, data }: TileNodeProps) {
+export default function TileNode({ id, type, data, selected }: TileNodeProps) {
   const connection = useConnection()
+  const { playerIndex, isPlayerTurn } = useAppStore(useShallow(stateSelector))
 
+  const unit = data.unit
+  const hasPlayerUnit = unit != null && unit.owner === playerIndex
+  const isConnectable =
+    isPlayerTurn && hasPlayerUnit && !data.reachable && !!selected
   const isTarget = connection.inProgress && connection.fromNode.id !== id
+  const backgroundColor = getBackgroundColor(
+    playerIndex,
+    data.unit,
+    data.reachable,
+    isTarget
+  )
 
   return (
     <div className={`custom-node ${type}`}>
       <div
         className="custom-node-body"
         style={{
+          backgroundColor,
           borderStyle: isTarget ? "dashed" : "solid",
-          backgroundColor: getBackgroundColor(id, data, connection),
         }}
       >
         <Handle
           className="custom-handle"
           position={Position.Right}
           type="source"
-          isConnectable={data.uid != 0 && !data.reachable}
+          isConnectable={isConnectable}
         />
         <Handle
           className="custom-handle"
@@ -49,7 +57,7 @@ export default function TileNode({ id, type, data }: TileNodeProps) {
           isConnectableEnd={!!data.reachable}
         />
         {data.label}
-        {data.uid != 0 && "*"}
+        {data.unit != null && "*"}
       </div>
     </div>
   )
@@ -59,16 +67,20 @@ export default function TileNode({ id, type, data }: TileNodeProps) {
 // Helper Functions
 // -----------------------------------------------------------------------------
 
+function stateSelector(state: AppState) {
+  return { playerIndex: state.playerIndex, isPlayerTurn: state.isPlayerTurn }
+}
+
 function getBackgroundColor(
-  id: string,
-  data: TileNodeData,
-  connection: ConnectionState
+  playerIndex: number,
+  unit: UnitState | null,
+  reachable: boolean | undefined,
+  isTarget: boolean
 ): string {
-  if (data.uid != 0) {
-    return "#ffcce3"
+  if (unit != null) {
+    return playerIndex === unit.owner ? "dodgerblue" : "#ffcce3"
   }
-  const isTarget = connection.inProgress && connection.fromNode.id !== id
-  return isTarget && data.reachable ? "#ccffe3" : "#ccd9f6"
+  return isTarget && reachable ? "#ccffe3" : "#ccd9f6"
 }
 
 // -----------------------------------------------------------------------------

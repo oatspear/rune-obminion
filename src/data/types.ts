@@ -5,13 +5,14 @@
 // Imports
 // -----------------------------------------------------------------------------
 
-import { Edge, Node, NodeChange, OnConnect } from "@xyflow/react"
+import { Edge, Node, NodeChange } from "@xyflow/react"
+import { BoardState, UnitState } from "../logic"
 
 // -----------------------------------------------------------------------------
 // Type Declarations
 // -----------------------------------------------------------------------------
 
-export type UnitReach = [string[], string[], string[], string[]]
+export type UnitReach = Array<string[]>
 
 export enum TileType {
   TILE = "tile",
@@ -21,8 +22,9 @@ export enum TileType {
 
 export type TileNodeData = {
   label: string
-  uid: number
+  unit: UnitState | null
   reachable?: boolean
+  phantom?: boolean
 }
 
 export type TileNodeType = Node<TileNodeData>
@@ -38,12 +40,18 @@ export type EdgeArrayMutator = (edges: Edge[]) => Edge[]
 export type SetEdgesPayload = Edge[] | EdgeArrayMutator
 
 export interface AppState {
+  playerIndex: number
+  isPlayerTurn: boolean
   nodes: TileNodeMap
   edges: Edge[]
+  setBoardState: (board: BoardState) => void
   onNodesChange: (changes: NodeChange<TileNodeType>[]) => void
   startDragMovement: (sourceId: string) => void
   endDragMovement: () => void
   isValidMovement: (source: string, target: string) => boolean
-  onConnect: OnConnect
-  onDropNode: (x: number, y: number) => void
+  // onConnect: OnConnect
+  // onDropNode: (x: number, y: number) => void
+  spawn1p3mUnit: (id: string) => void
+  setPlayerTurn: (isPlayerTurn: boolean) => void
+  setPlayerIndex: (i: number) => void
 }

@@ -5,33 +5,16 @@
 // Imports
 // -----------------------------------------------------------------------------
 
-import { useCallback } from "react"
-
 // -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
 
-export interface ActionBarProps {
-  setNodesConnectable: (connectable: boolean) => void
-}
-
-export default function ActionBar({
-  setNodesConnectable,
-}: ActionBarProps): JSX.Element {
-  const enableConnect = useCallback(
-    () => setNodesConnectable(true),
-    [setNodesConnectable]
-  )
-
-  const disableConnect = useCallback(
-    () => setNodesConnectable(false),
-    [setNodesConnectable]
-  )
-
+export default function ActionBar(): JSX.Element {
   return (
     <div className="action-bar">
-      <button onClick={disableConnect}>Spawn</button>
-      <button onClick={enableConnect}>Move</button>
+      <button>Spawn 1/3</button>
+      <button>Spawn 2/2</button>
+      <button>Spawn 3/1</button>
     </div>
   )
 }

@@ -11,12 +11,12 @@ import type { PlayerId, RuneClient } from "rune-sdk"
 // Constants
 // -----------------------------------------------------------------------------
 
-// const PLAYER_0_SPAWN_L = 1
-// const PLAYER_0_SPAWN_R = 7
-const PLAYER_0_BASE = 4
-// const PLAYER_1_SPAWN_L = 22
-// const PLAYER_1_SPAWN_R = 28
-const PLAYER_1_BASE = 25
+export const PLAYER_0_SPAWN_L = 21
+export const PLAYER_0_SPAWN_R = 27
+const PLAYER_0_BASE = 24
+export const PLAYER_1_SPAWN_L = 6
+export const PLAYER_1_SPAWN_R = 0
+const PLAYER_1_BASE = 3
 
 // -----------------------------------------------------------------------------
 // Exports
@@ -38,8 +38,13 @@ export interface GameState {
   playerIds: PlayerId[]
 }
 
-type GameActions = {
-  claimCell: (cellIndex: number) => void
+export interface MoveUnitActionPayload {
+  fromTile: number
+  toTile: number
+}
+
+export type GameActions = {
+  moveUnit: (args: MoveUnitActionPayload) => void
 }
 
 declare global {
@@ -57,40 +62,68 @@ function isWinningMove(playerIndex: number, tileIndex: number): boolean {
   )
 }
 
+// -----------------------------------------------------------------------------
+// Helper Functions
+// -----------------------------------------------------------------------------
+
+function declareWinner(playerId: PlayerId, allPlayerIds: PlayerId[]): void {
+  const [player1, player2] = allPlayerIds
+  Rune.gameOver({
+    players: {
+      [player1]: playerId === player1 ? "WON" : "LOST",
+      [player2]: playerId === player2 ? "WON" : "LOST",
+    },
+  })
+}
+
+// -----------------------------------------------------------------------------
+// Initialization
+// -----------------------------------------------------------------------------
+
 Rune.initLogic({
   minPlayers: 2,
   maxPlayers: 2,
   setup: (allPlayerIds) => ({
-    board: new Array(28).fill(null),
-    lastMovePlayerId: null,
+    board: buildInitialBoard(),
+    lastMovePlayerId: allPlayerIds[1],
     playerIds: allPlayerIds,
   }),
   actions: {
-    claimCell: (tileIndex, { game, playerId, allPlayerIds }) => {
-      if (
-        game.board[tileIndex] !== null ||
-        playerId === game.lastMovePlayerId ||
-        playerId == null
-      ) {
+    moveUnit: (args, { game, playerId, allPlayerIds }) => {
+      if (playerId == null || playerId === game.lastMovePlayerId) {
         throw Rune.invalidAction()
       }
 
-      const owner = game.playerIds.indexOf(playerId)
-      const movement = 2
-      const attackDice = 2
-      game.board[tileIndex] = { owner, movement, attackDice }
+      const fromTile = args.fromTile
+      const toTile = args.toTile
+      const board = game.board
+      const unit = board[fromTile]
+      const target = board[toTile]
+
+      if (unit == null || target !== null) {
+        throw Rune.invalidAction()
+      }
+
+      board[fromTile] = null
+      board[toTile] = unit
       game.lastMovePlayerId = playerId
 
-      if (isWinningMove(owner, tileIndex)) {
-        const [player1, player2] = allPlayerIds
-
-        Rune.gameOver({
-          players: {
-            [player1]: playerId === player1 ? "WON" : "LOST",
-            [player2]: playerId === player2 ? "WON" : "LOST",
-          },
-        })
+      if (isWinningMove(unit.owner, toTile)) {
+        declareWinner(playerId, allPlayerIds)
       }
     },
   },
 })
+
+// -----------------------------------------------------------------------------
+// Testing
+// -----------------------------------------------------------------------------
+
+function buildInitialBoard(): BoardState {
+  const board = new Array(28).fill(null)
+  const movement = 2
+  const attackDice = 2
+  board[0] = { owner: 1, movement, attackDice }
+  board[21] = { owner: 0, movement, attackDice }
+  return board
+}

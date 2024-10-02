@@ -19,30 +19,13 @@ main {
   justify-content: space-between;
 }
 
-#action-bar {
-  flex: 0 1 auto;
-  background-color: navy;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-evenly;
-}
-
-#action-bar .dndnode {
-  height: 20px;
-  padding: 4px;
-  border: 1px solid whitesmoke;
-  border-radius: 2px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: grab;
-}
-
 #board {
   width: 100vw;
   height: 100vh;
+  background-color: darkolivegreen;
+}
+
+#board.active {
   background-color: cadetblue;
 }
 
@@ -61,10 +44,6 @@ main {
   display: flex;
   flex-direction: row;
   justify-content: center;
-}
-
-.react-flow__node.selected {
-  background-color: #cb89fc;
 }
 
 .custom-node-body {
@@ -86,6 +65,10 @@ main {
 
 .custom-node.spawn .custom-node-body {
   border-color: navy;
+}
+
+.react-flow__node.selected .custom-node-body {
+  border-color: lightskyblue;
 }
 
 /*.react-flow__handle { visibility: hidden; }*/
