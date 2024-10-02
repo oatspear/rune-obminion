@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------------
 
 import { Edge, Node, NodeChange } from "@xyflow/react"
+
 import { BoardState, UnitState } from "../logic"
 
 // -----------------------------------------------------------------------------
@@ -18,13 +19,13 @@ export enum TileType {
   TILE = "tile",
   BASE = "base",
   SPAWN = "spawn",
+  BENCH = "bench",
 }
 
 export type TileNodeData = {
   label: string
   unit: UnitState | null
   reachable?: boolean
-  phantom?: boolean
 }
 
 export type TileNodeType = Node<TileNodeData>
@@ -45,6 +46,7 @@ export interface AppState {
   nodes: TileNodeMap
   edges: Edge[]
   setBoardState: (board: BoardState) => void
+  setBenchState: (playerIndex: number, bench: UnitState[]) => void
   onNodesChange: (changes: NodeChange<TileNodeType>[]) => void
   startDragMovement: (sourceId: string) => void
   endDragMovement: () => void

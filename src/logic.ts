@@ -34,7 +34,8 @@ export type BoardState = TileState[]
 
 export interface GameState {
   board: BoardState
-  lastMovePlayerId: PlayerId | null
+  benches: [UnitState[], UnitState[]]
+  lastMovePlayerId: PlayerId
   playerIds: PlayerId[]
 }
 
@@ -85,6 +86,7 @@ Rune.initLogic({
   maxPlayers: 2,
   setup: (allPlayerIds) => ({
     board: buildInitialBoard(),
+    benches: [buildDefaultBench(0), buildDefaultBench(1)],
     lastMovePlayerId: allPlayerIds[1],
     playerIds: allPlayerIds,
   }),
@@ -126,4 +128,12 @@ function buildInitialBoard(): BoardState {
   board[0] = { owner: 1, movement, attackDice }
   board[21] = { owner: 0, movement, attackDice }
   return board
+}
+
+function buildDefaultBench(owner: number): UnitState[] {
+  return [
+    { owner, movement: 1, attackDice: 3 },
+    { owner, movement: 2, attackDice: 2 },
+    { owner, movement: 3, attackDice: 1 },
+  ]
 }

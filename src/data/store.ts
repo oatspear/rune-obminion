@@ -10,6 +10,7 @@ import { applyNodeChanges, Edge, NodeChange } from "@xyflow/react"
 
 import {
   getPathableReach,
+  getPlayerBench,
   initialEdges,
   initialNodes,
   isWithinReach,
@@ -44,6 +45,13 @@ const useAppStore = create<AppState>()((set, get) => ({
       }
     }
     set({ nodes })
+  },
+  setBenchState: (playerIndex: number, bench: UnitState[]) => {
+    const nodes: TileNodeMap = { ...get().nodes }
+    const benchTiles = getPlayerBench(playerIndex)
+    for (const id of benchTiles) {
+      delete nodes[id]
+    }
   },
   onNodesChange: (changes) => {
     const onlySelect = changes.filter(isSelectChange)
@@ -86,7 +94,7 @@ const useAppStore = create<AppState>()((set, get) => ({
     }
     const nodes = {
       ...state.nodes,
-      [id]: changeData(node, { unit, phantom: true }),
+      [id]: changeData(node, { unit }),
     }
     set({ nodes })
   },
@@ -96,9 +104,9 @@ const useAppStore = create<AppState>()((set, get) => ({
     let changed = false
     const nodes = { ...state.nodes }
     for (const node of Object.values(nodes)) {
-      if (!node.data.phantom) continue
+      // if (!node.data.phantom) continue
       changed = true
-      nodes[node.id] = changeData(node, { unit: null, phantom: false })
+      nodes[node.id] = changeData(node, { unit: null })
     }
     if (changed) set({ isPlayerTurn, nodes })
     else set({ isPlayerTurn })

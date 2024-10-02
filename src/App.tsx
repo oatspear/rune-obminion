@@ -30,9 +30,8 @@ export default function App(): JSX.Element {
   const [game, setGame] = useState<GameState>()
   const [yourPlayerId, setYourPlayerId] = useState<PlayerId | undefined>()
 
-  const { setBoardState, setPlayerIndex, setPlayerTurn } = useAppStore(
-    useShallow(stateSelector)
-  )
+  const { setBoardState, setBenchState, setPlayerIndex, setPlayerTurn } =
+    useAppStore(useShallow(stateSelector))
 
   useEffect(() => {
     Rune.initClient({
@@ -45,6 +44,8 @@ export default function App(): JSX.Element {
 
         if (action != null || event?.name === "stateSync") {
           setBoardState(game.board)
+          setBenchState(0, game.benches[0])
+          setBenchState(1, game.benches[1])
         }
 
         if (action && action.name === "moveUnit") {
@@ -76,6 +77,7 @@ export default function App(): JSX.Element {
 function stateSelector(state: AppState) {
   return {
     setBoardState: state.setBoardState,
+    setBenchState: state.setBenchState,
     setPlayerIndex: state.setPlayerIndex,
     setPlayerTurn: state.setPlayerTurn,
   }

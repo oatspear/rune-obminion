@@ -182,6 +182,79 @@ export const initialNodes: TileNodeType[] = [
     position: { x: 600, y: 400 },
     data: { label: "28", unit: null },
   },
+  // Extra Tiles for the Bench -----------------------------
+  {
+    id: "B0.1",
+    type: TileType.BENCH,
+    position: { x: 50, y: -150 },
+    data: { label: "B0.1", unit: null },
+  },
+  {
+    id: "B0.2",
+    type: TileType.BENCH,
+    position: { x: 150, y: -150 },
+    data: { label: "B0.2", unit: null },
+  },
+  {
+    id: "B0.3",
+    type: TileType.BENCH,
+    position: { x: 250, y: -150 },
+    data: { label: "B0.3", unit: null },
+  },
+  {
+    id: "B0.4",
+    type: TileType.BENCH,
+    position: { x: 350, y: -150 },
+    data: { label: "B0.4", unit: null },
+  },
+  {
+    id: "B0.5",
+    type: TileType.BENCH,
+    position: { x: 450, y: -150 },
+    data: { label: "B0.5", unit: null },
+  },
+  {
+    id: "B0.6",
+    type: TileType.BENCH,
+    position: { x: 550, y: -150 },
+    data: { label: "B0.6", unit: null },
+  },
+  {
+    id: "B1.1",
+    type: TileType.BENCH,
+    position: { x: 50, y: 550 },
+    data: { label: "B1.1", unit: null },
+  },
+  {
+    id: "B1.2",
+    type: TileType.BENCH,
+    position: { x: 150, y: 550 },
+    data: { label: "B1.2", unit: null },
+  },
+  {
+    id: "B1.3",
+    type: TileType.BENCH,
+    position: { x: 250, y: 550 },
+    data: { label: "B1.3", unit: null },
+  },
+  {
+    id: "B1.4",
+    type: TileType.BENCH,
+    position: { x: 350, y: 550 },
+    data: { label: "B1.4", unit: null },
+  },
+  {
+    id: "B1.5",
+    type: TileType.BENCH,
+    position: { x: 450, y: 550 },
+    data: { label: "B1.5", unit: null },
+  },
+  {
+    id: "B1.6",
+    type: TileType.BENCH,
+    position: { x: 550, y: 550 },
+    data: { label: "B1.6", unit: null },
+  },
 ]
 
 export const initialEdges: Edge[] = [
@@ -457,7 +530,28 @@ export const initialEdges: Edge[] = [
     selectable: false,
     focusable: false,
   },
+  // Extra Edges
+  {
+    id: "eb01-1",
+    source: "B0-1",
+    target: "1",
+    type: "floating",
+    selectable: false,
+    focusable: false,
+    hidden: true,
+  },
+  {
+    id: "eb02-1",
+    source: "B0-2",
+    target: "1",
+    type: "floating",
+    selectable: false,
+    focusable: false,
+    hidden: true,
+  },
 ]
+
+addBenchEdges(initialEdges)
 
 // -----------------------------------------------------------------------------
 // Precalculated Data
@@ -543,17 +637,21 @@ export function getPathableReach(
     const previous = reach[i - 1]
     const nextEdges: Edge[] = []
     for (const edge of edges) {
+      const sourceNode = nodes[edge.source]
+      if (sourceNode.type === TileType.BENCH) continue
+      const targetNode = nodes[edge.target]
+      if (targetNode.type === TileType.BENCH) continue
       let processLater = true
       if (previous.indexOf(edge.source) >= 0) {
         processLater = false
-        const occupant = nodes[edge.target].data.unit
+        const occupant = targetNode.data.unit
         if (!occupant) {
           reach[i].push(edge.target)
         }
       }
       if (previous.indexOf(edge.target) >= 0) {
         processLater = false
-        const occupant = nodes[edge.source].data.unit
+        const occupant = sourceNode.data.unit
         if (!occupant) {
           reach[i].push(edge.source)
         }
@@ -567,14 +665,71 @@ export function getPathableReach(
   return reach
 }
 
-export function flattenReach(reach: UnitReach): string[] {
-  const flattened: string[] = []
-  for (const step of reach) {
-    for (const id of step) {
-      if (flattened.indexOf(id) < 0) {
-        flattened.push(id)
+// export function flattenReach(reach: UnitReach): string[] {
+//   const flattened: string[] = []
+//   for (const step of reach) {
+//     for (const id of step) {
+//       if (flattened.indexOf(id) < 0) {
+//         flattened.push(id)
+//       }
+//     }
+//   }
+//   return flattened
+// }
+
+export function getPlayerSpawns(playerIndex: number): string[] {
+  if (playerIndex === 0) return ["1", "7"]
+  if (playerIndex === 1) return ["22", "28"]
+  return []
+}
+
+export function getPlayerBench(playerIndex: number): string[] {
+  if (playerIndex === 0) return ["B1", "B2", "B3", "B4", "B5", "B6"]
+  if (playerIndex === 1) return ["B7", "B8", "B9", "B10", "B11", "B12"]
+  return []
+}
+
+export function connectBenchToSpawn(
+  nodes: TileNodeMap,
+  playerIndex: number
+): Edge[] {
+  const spawns = getPlayerSpawns(playerIndex).map((id) => nodes[id])
+  const bench = getPlayerBench(playerIndex).map((id) => nodes[id])
+  const edges: Edge[] = []
+  for (const node of bench) {
+    if (node.data.unit == null) continue
+    for (const spawn of spawns) {
+      if (spawn.data.unit != null) continue
+      edges.push({
+        id: `s${node.id}-${spawn.id}`,
+        source: node.id,
+        target: spawn.id,
+        type: "floating",
+        selectable: false,
+        focusable: false,
+        hidden: true,
+      })
+    }
+  }
+  return edges
+}
+
+function addBenchEdges(edges: Edge[]): void {
+  for (let i = 0; i < 2; ++i) {
+    const spawns = getPlayerSpawns(i)
+    for (let b = 0; b < 6; ++b) {
+      for (const target of spawns) {
+        const source = `B${i}.${b}`
+        edges.push({
+          id: `e${source}-${target}`,
+          source,
+          target,
+          type: "floating",
+          selectable: false,
+          focusable: false,
+          hidden: true,
+        })
       }
     }
   }
-  return flattened
 }

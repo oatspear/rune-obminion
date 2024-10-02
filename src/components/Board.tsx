@@ -41,6 +41,7 @@ const nodeTypes = {
   [TileType.TILE]: TileNode,
   [TileType.BASE]: TileNode,
   [TileType.SPAWN]: TileNode,
+  [TileType.BENCH]: TileNode,
 }
 
 const edgeTypes = {
