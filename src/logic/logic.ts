@@ -6,7 +6,12 @@
 // -----------------------------------------------------------------------------
 
 import type { PlayerId, RuneClient } from "rune-sdk"
-import { findSpawnTiles, getArenaStructure, isTileReachable } from "./board"
+import {
+  findSpawnTiles,
+  getAdjacentTiles,
+  getArenaStructure,
+  isTileReachable,
+} from "./board"
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -29,10 +34,20 @@ export type TileState = UnitState | null
 
 export type BoardState = TileState[]
 
+export interface CombatEvent {
+  attackerDice: number[]
+  defenderDice: number[]
+  fromTile: number
+  toTile: number
+  attacker: PlayerId
+  result: number
+}
+
 export interface GameState {
   board: BoardState
   benches: [UnitState[], UnitState[]]
   lastMovePlayerId: PlayerId
+  lastCombat: CombatEvent | null
   playerIds: PlayerId[]
 }
 
@@ -46,13 +61,26 @@ export interface PlayUnitActionPayload {
   toTile: number
 }
 
+export interface AttackActionPayload {
+  fromTile: number
+  toTile: number
+}
+
+export type EndTurnActionPayload = Record<string, never>
+
 export type GameActions = {
   moveUnit: (args: MoveUnitActionPayload) => void
   playUnit: (args: PlayUnitActionPayload) => void
+  attack: (args: AttackActionPayload) => void
+  endTurn: (args: EndTurnActionPayload) => void
+}
+
+interface Persisted {
+  sessionCount: number
 }
 
 declare global {
-  const Rune: RuneClient<GameState, GameActions>
+  const Rune: RuneClient<GameState, GameActions, Persisted>
 }
 
 // some types adapted directly from Rune
@@ -78,9 +106,21 @@ type PlayUnitActionType = (
   context: ActionContext<false>
 ) => void
 
+type AttackActionType = (
+  params: AttackActionPayload,
+  context: ActionContext<false>
+) => void
+
+type EndTurnActionType = (
+  params: EndTurnActionPayload,
+  context: ActionContext<false>
+) => void
+
 interface ActionHandlers {
   moveUnit: MoveUnitActionType
   playUnit: PlayUnitActionType
+  attack: AttackActionType
+  endTurn: EndTurnActionType
 }
 
 // -----------------------------------------------------------------------------
@@ -100,6 +140,21 @@ function spawnUnit(board: BoardState, unit: UnitState, tile: number): void {
   board[tile] = unit
 }
 
+function findAttackTargets(
+  board: BoardState,
+  tiles: number[],
+  playerIndex: number
+): number[] {
+  const targets: number[] = []
+  for (const tile of tiles) {
+    const unit = board[tile]
+    if (unit != null && unit.owner != playerIndex) {
+      targets.push(tile)
+    }
+  }
+  return targets
+}
+
 function isWinningMove(playerIndex: number, tileIndex: number): boolean {
   return (
     (playerIndex === 0 && tileIndex === PLAYER_2_GOAL) ||
@@ -110,6 +165,12 @@ function isWinningMove(playerIndex: number, tileIndex: number): boolean {
 // -----------------------------------------------------------------------------
 // Helper Functions
 // -----------------------------------------------------------------------------
+
+function getPlayerIndex(playerId: PlayerId, allPlayerIds: PlayerId[]): number {
+  const playerIndex = allPlayerIds.indexOf(playerId)
+  if (playerIndex < 0) throw Rune.invalidAction()
+  return playerIndex
+}
 
 function isTileOccupied(tile: TileState): boolean {
   return tile != null
@@ -135,6 +196,10 @@ function declareWinner(playerId: PlayerId, allPlayerIds: PlayerId[]): void {
   })
 }
 
+function rollDie(): number {
+  return ((Math.random() * 6) | 0) + 1
+}
+
 // -----------------------------------------------------------------------------
 // Initialization
 // -----------------------------------------------------------------------------
@@ -142,13 +207,37 @@ function declareWinner(playerId: PlayerId, allPlayerIds: PlayerId[]): void {
 Rune.initLogic({
   minPlayers: 2,
   maxPlayers: 2,
-  setup: (allPlayerIds) => ({
-    board: buildInitialBoard(),
-    benches: [buildDefaultBench(0), buildDefaultBench(1)],
-    lastMovePlayerId: allPlayerIds[1],
-    playerIds: allPlayerIds,
-  }),
+  persistPlayerData: true,
+
+  setup: (allPlayerIds, { game }) => {
+    for (const playerId of allPlayerIds) {
+      game.persisted[playerId].sessionCount =
+        (game.persisted[playerId].sessionCount || 0) + 1
+    }
+    return {
+      board: buildInitialBoard(),
+      benches: [buildDefaultBench(0), buildDefaultBench(1)],
+      lastMovePlayerId: allPlayerIds[1],
+      lastCombat: null,
+      playerIds: allPlayerIds,
+    }
+  },
+
   actions: buildActionHandlers(),
+
+  events: {
+    playerJoined: (playerId, { game }) => {
+      game.persisted[playerId].sessionCount =
+        (game.persisted[playerId].sessionCount || 0) + 1
+    },
+    playerLeft: (playerId, { game }) => {
+      const playerIds = game.playerIds
+      playerIds.splice(playerIds.indexOf(playerId), 1)
+      if (playerIds.length < 2) {
+        declareWinner(playerIds[0], playerIds)
+      }
+    },
+  },
 })
 
 function buildActionHandlers(): ActionHandlers {
@@ -164,6 +253,8 @@ function buildActionHandlers(): ActionHandlers {
       const toTile = args.toTile
       const unit = getMovableUnit(board, fromTile)
 
+      const playerIndex = getPlayerIndex(playerId, allPlayerIds)
+      if (unit.owner != playerIndex) throw Rune.invalidAction()
       if (board[toTile] !== null) throw Rune.invalidAction()
 
       const reachable = isTileReachable(
@@ -177,19 +268,23 @@ function buildActionHandlers(): ActionHandlers {
 
       board[fromTile] = null
       board[toTile] = unit
+      game.lastCombat = null
 
-      game.lastMovePlayerId = playerId
       if (isWinningMove(unit.owner, toTile)) {
-        declareWinner(playerId, allPlayerIds)
+        return declareWinner(playerId, allPlayerIds)
+      }
+
+      const adjacency = getAdjacentTiles(toTile, struct)
+      const attackable = findAttackTargets(board, adjacency, playerIndex)
+      if (attackable.length === 0) {
+        game.lastMovePlayerId = playerId
       }
     },
 
     playUnit: (args, { game, playerId, allPlayerIds }) => {
       checkIsPlayersTurn(playerId, game.lastMovePlayerId)
 
-      const playerIndex = allPlayerIds.indexOf(playerId)
-      if (playerIndex < 0) throw Rune.invalidAction()
-
+      const playerIndex = getPlayerIndex(playerId, allPlayerIds)
       const bench = game.benches[playerIndex]
       const benchIndex = args.benchIndex
       if (benchIndex < 0) throw Rune.invalidAction()
@@ -217,11 +312,75 @@ function buildActionHandlers(): ActionHandlers {
         if (!reachable) throw Rune.invalidAction()
       }
       spawnUnit(board, unit, toTile)
+      game.lastCombat = null
 
-      game.lastMovePlayerId = playerId
       if (isWinningMove(unit.owner, toTile)) {
-        declareWinner(playerId, allPlayerIds)
+        return declareWinner(playerId, allPlayerIds)
       }
+
+      const adjacency = getAdjacentTiles(toTile, struct)
+      const attackable = findAttackTargets(board, adjacency, playerIndex)
+      if (attackable.length === 0) {
+        game.lastMovePlayerId = playerId
+      }
+    },
+
+    attack: (args, { game, playerId, allPlayerIds }) => {
+      checkIsPlayersTurn(playerId, game.lastMovePlayerId)
+
+      const board = game.board
+      const fromTile = args.fromTile
+      const toTile = args.toTile
+      if (getAdjacentTiles(fromTile, struct).indexOf(toTile) < 0) {
+        throw Rune.invalidAction()
+      }
+
+      const unit = getMovableUnit(board, fromTile)
+      const playerIndex = getPlayerIndex(playerId, allPlayerIds)
+      if (unit.owner != playerIndex) throw Rune.invalidAction()
+      const opponentIndex = (playerIndex + 1) % 2
+      const opponent = board[toTile]
+      if (opponent == null) throw Rune.invalidAction()
+
+      const event: CombatEvent = {
+        attackerDice: [],
+        defenderDice: [],
+        fromTile,
+        toTile,
+        attacker: playerId,
+        result: 0,
+      }
+      let a = 0
+      for (let d = 0; d < unit.attackDice; ++d) {
+        const r = rollDie()
+        event.attackerDice.push(r)
+        a += r
+      }
+      let b = 0
+      for (let d = 0; d < opponent.attackDice; ++d) {
+        const r = rollDie()
+        event.defenderDice.push(r)
+        b += r
+      }
+      event.result = a - b // positive means victory
+
+      if (a >= b) {
+        board[toTile] = null
+        game.benches[opponentIndex].push(opponent)
+      }
+      if (a <= b) {
+        board[fromTile] = null
+        game.benches[playerIndex].push(unit)
+      }
+
+      game.lastCombat = event
+      game.lastMovePlayerId = playerId
+    },
+
+    endTurn: (_args, { game, playerId }) => {
+      checkIsPlayersTurn(playerId, game.lastMovePlayerId)
+      game.lastCombat = null
+      game.lastMovePlayerId = playerId
     },
   }
 }
