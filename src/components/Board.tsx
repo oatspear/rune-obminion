@@ -17,13 +17,7 @@ import {
 } from "@xyflow/react"
 import { useShallow } from "zustand/react/shallow"
 
-import {
-  idToIndex,
-  isBenchID,
-  MAX_VIEW_X,
-  MAX_VIEW_Y,
-  NODE_OFFSET,
-} from "../data/board.ts"
+import { idToIndex, isBenchID, MAX_VIEW_X, MAX_VIEW_Y } from "../data/board.ts"
 import { AppState, TileType } from "../data/types.ts"
 import useAppStore from "../data/store.ts"
 
@@ -145,8 +139,8 @@ export default function Board(): JSX.Element {
         fitViewOptions={{ minZoom: 0.25 }}
         minZoom={0.25}
         translateExtent={[
-          [-(MAX_VIEW_X + NODE_OFFSET), -(MAX_VIEW_Y + NODE_OFFSET)],
-          [MAX_VIEW_X + 2 * NODE_OFFSET, MAX_VIEW_Y + NODE_OFFSET],
+          [-2 * MAX_VIEW_X, -2 * MAX_VIEW_Y],
+          [2 * MAX_VIEW_X, 2 * MAX_VIEW_Y],
         ]}
         autoPanOnConnect={false}
         proOptions={proOptions}
