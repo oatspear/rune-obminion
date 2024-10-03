@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright © 2024 André Santos
+// Copyright © 2024 André "Oats" Santos
 
 // -----------------------------------------------------------------------------
 // Imports
@@ -10,7 +10,7 @@ import { useShallow } from "zustand/react/shallow"
 
 import { AppState, TileNodeType } from "../data/types"
 import useAppStore from "../data/store"
-import { UnitState } from "../logic"
+import { UnitState } from "../logic/logic"
 
 // -----------------------------------------------------------------------------
 // Component

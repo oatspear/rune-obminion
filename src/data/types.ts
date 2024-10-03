@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright © 2024 André Santos
+// Copyright © 2024 André "Oats" Santos
 
 // -----------------------------------------------------------------------------
 // Imports
@@ -7,7 +7,7 @@
 
 import { Edge, Node, NodeChange } from "@xyflow/react"
 
-import { BoardState, UnitState } from "../logic"
+import { BoardState, UnitState } from "../logic/logic"
 
 // -----------------------------------------------------------------------------
 // Type Declarations
@@ -17,7 +17,7 @@ export type UnitReach = Array<string[]>
 
 export enum TileType {
   TILE = "tile",
-  BASE = "base",
+  GOAL = "goal",
   SPAWN = "spawn",
   BENCH = "bench",
 }
@@ -26,6 +26,7 @@ export type TileNodeData = {
   label: string
   unit: UnitState | null
   reachable?: boolean
+  owner?: number
 }
 
 export type TileNodeType = Node<TileNodeData>

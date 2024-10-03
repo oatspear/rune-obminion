@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright © 2024 André Santos
+// Copyright © 2024 André "Oats" Santos
 
 // -----------------------------------------------------------------------------
 // Imports
 // -----------------------------------------------------------------------------
 
-import { useCallback, useMemo } from "react"
+import { useCallback } from "react"
 import {
   Connection,
   ConnectionLineType,
@@ -17,6 +17,13 @@ import {
 } from "@xyflow/react"
 import { useShallow } from "zustand/react/shallow"
 
+import {
+  idToIndex,
+  isBenchID,
+  MAX_VIEW_X,
+  MAX_VIEW_Y,
+  NODE_OFFSET,
+} from "../data/board.ts"
 import { AppState, TileType } from "../data/types.ts"
 import useAppStore from "../data/store.ts"
 
@@ -25,13 +32,6 @@ import FloatingEdge from "./FloatingEdge.tsx"
 import TileNode from "./TileNode.tsx"
 
 import "@xyflow/react/dist/style.css"
-import { tileIdToIndex } from "../data/board.ts"
-import {
-  PLAYER_0_SPAWN_L,
-  PLAYER_0_SPAWN_R,
-  PLAYER_1_SPAWN_L,
-  PLAYER_1_SPAWN_R,
-} from "../logic.ts"
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -39,7 +39,7 @@ import {
 
 const nodeTypes = {
   [TileType.TILE]: TileNode,
-  [TileType.BASE]: TileNode,
+  [TileType.GOAL]: TileNode,
   [TileType.SPAWN]: TileNode,
   [TileType.BENCH]: TileNode,
 }
@@ -63,7 +63,6 @@ export default function Board(): JSX.Element {
   const {
     nodes,
     edges,
-    playerIndex,
     isPlayerTurn,
     onNodesChange,
     startDragMovement,
@@ -71,19 +70,7 @@ export default function Board(): JSX.Element {
     isValidMovement,
   } = useAppStore(useShallow(stateSelector))
 
-  const isSpawnSelected = useMemo(() => {
-    for (const node of Object.values(nodes)) {
-      if (!node.selected) continue
-      if (node.type !== TileType.SPAWN) continue
-      const i = tileIdToIndex(node.id)
-      if (playerIndex === 0) {
-        if (i === PLAYER_0_SPAWN_L || i === PLAYER_0_SPAWN_R) return true
-      } else {
-        if (i === PLAYER_1_SPAWN_L || i === PLAYER_1_SPAWN_R) return true
-      }
-    }
-    return false
-  }, [nodes, playerIndex])
+  const isSpawnSelected = false
 
   const onConnectStart: OnConnectStart = useCallback(
     (_event, params) => {
@@ -97,9 +84,13 @@ export default function Board(): JSX.Element {
   const onConnectEnd = endDragMovement
 
   const onConnect = useCallback((connection: Connection) => {
-    const fromTile = tileIdToIndex(connection.source)
-    const toTile = tileIdToIndex(connection.target)
-    Rune.actions.moveUnit({ fromTile, toTile })
+    const fromTile = idToIndex(connection.source)
+    const toTile = idToIndex(connection.target)
+    if (isBenchID(connection.source)) {
+      Rune.actions.playUnit({ benchIndex: fromTile, toTile })
+    } else {
+      Rune.actions.moveUnit({ fromTile, toTile })
+    }
   }, [])
 
   const isValidConnection = useCallback(
@@ -154,8 +145,8 @@ export default function Board(): JSX.Element {
         fitViewOptions={{ minZoom: 0.25 }}
         minZoom={0.25}
         translateExtent={[
-          [-200, -200],
-          [800, 600],
+          [-(MAX_VIEW_X + NODE_OFFSET), -(MAX_VIEW_Y + NODE_OFFSET)],
+          [MAX_VIEW_X + 2 * NODE_OFFSET, MAX_VIEW_Y + NODE_OFFSET],
         ]}
         autoPanOnConnect={false}
         proOptions={proOptions}

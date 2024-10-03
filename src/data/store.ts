@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright © 2024 André Santos
+// Copyright © 2024 André "Oats" Santos
 
 // -----------------------------------------------------------------------------
 // Imports
@@ -8,23 +8,28 @@
 import { create } from "zustand"
 import { applyNodeChanges, Edge, NodeChange } from "@xyflow/react"
 
+import { BoardState, UnitState } from "../logic/logic"
+
 import {
+  benchTiles,
   getPathableReach,
-  getPlayerBench,
-  initialEdges,
-  initialNodes,
+  idToIndex,
+  invertBoardView,
+  isBenchEdge,
+  isBenchID,
   isWithinReach,
+  makeDefaultBoardEdges,
+  makeDefaultBoardNodes,
   mapNodes,
-  tileIdToIndex,
 } from "./board"
 import {
   AppState,
   TileNodeData,
   TileNodeMap,
   TileNodeType,
+  TileType,
   UnitReach,
 } from "./types"
-import { BoardState, UnitState } from "../logic"
 
 // -----------------------------------------------------------------------------
 // Data Store
@@ -33,12 +38,13 @@ import { BoardState, UnitState } from "../logic"
 const useAppStore = create<AppState>()((set, get) => ({
   playerIndex: -1,
   isPlayerTurn: false,
-  nodes: mapNodes(initialNodes),
-  edges: initialEdges,
+  nodes: mapNodes(makeDefaultBoardNodes()),
+  edges: makeDefaultBoardEdges(),
   setBoardState: (board: BoardState) => {
     const nodes: TileNodeMap = { ...get().nodes }
     for (const node of Object.values(nodes)) {
-      const i = tileIdToIndex(node.id)
+      if (node.type === TileType.BENCH) continue
+      const i = idToIndex(node.id)
       const unit: UnitState | null = board[i]
       if (node.data.unit != unit) {
         nodes[node.id] = changeData(node, { unit })
@@ -48,10 +54,12 @@ const useAppStore = create<AppState>()((set, get) => ({
   },
   setBenchState: (playerIndex: number, bench: UnitState[]) => {
     const nodes: TileNodeMap = { ...get().nodes }
-    const benchTiles = getPlayerBench(playerIndex)
-    for (const id of benchTiles) {
-      delete nodes[id]
+    const benchStack = [...bench].reverse()
+    for (const id of benchTiles[playerIndex]) {
+      const unit = benchStack.pop() || null
+      nodes[id] = changeData(nodes[id], { unit })
     }
+    set({ nodes })
   },
   onNodesChange: (changes) => {
     const onlySelect = changes.filter(isSelectChange)
@@ -99,21 +107,12 @@ const useAppStore = create<AppState>()((set, get) => ({
     set({ nodes })
   },
   setPlayerTurn: (isPlayerTurn: boolean) => {
-    const state = get()
-    if (state.isPlayerTurn === isPlayerTurn) return
-    let changed = false
-    const nodes = { ...state.nodes }
-    for (const node of Object.values(nodes)) {
-      // if (!node.data.phantom) continue
-      changed = true
-      nodes[node.id] = changeData(node, { unit: null })
-    }
-    if (changed) set({ isPlayerTurn, nodes })
-    else set({ isPlayerTurn })
+    set({ isPlayerTurn })
   },
   setPlayerIndex: (playerIndex: number) => {
-    let nodes = get().nodes
-    if (playerIndex === 1 && get().playerIndex !== 1) {
+    const state = get()
+    let nodes = state.nodes
+    if (playerIndex === 0 && state.playerIndex !== 0) {
       nodes = invertBoardView(nodes)
     }
     set({ playerIndex, nodes })
@@ -151,10 +150,6 @@ export default useAppStore
 // -----------------------------------------------------------------------------
 // Helper Functions
 // -----------------------------------------------------------------------------
-
-// function indexToID(i: number): string {
-//   return `${i + 1}`
-// }
 
 function isSelectChange(change: NodeChange<TileNodeType>): boolean {
   return change.type === "select"
@@ -201,9 +196,24 @@ function highlightMovementNodes(
 }
 
 function animateMovementEdge(edge: Edge, reach: UnitReach): Edge {
+  if (isBenchEdge(edge)) {
+    const source = reach[0][0]
+    const fromBench = isBenchID(source)
+    if (fromBench) {
+      if (edge.source === source || edge.target === source) {
+        return { ...edge, animated: true, hidden: false }
+      }
+    }
+    if (edge.animated || !edge.hidden) {
+      return { ...edge, animated: false, hidden: true }
+    }
+    return edge
+  }
+
+  // arena edges
   for (let i = 0; i < reach.length - 1; ++i) {
     if (reach[i].indexOf(edge.source) >= 0) {
-      return { ...edge, animated: true }
+      return { ...edge, animated: true, hidden: false }
     }
     if (reach[i].indexOf(edge.target) >= 0) {
       return {
@@ -211,6 +221,7 @@ function animateMovementEdge(edge: Edge, reach: UnitReach): Edge {
         source: edge.target,
         target: edge.source,
         animated: true,
+        hidden: false,
       }
     }
   }
@@ -229,27 +240,6 @@ function animateMovementEdges(oldEdges: Edge[], reach: UnitReach): Edge[] {
 }
 
 function deanimateEdge(edge: Edge): Edge {
-  return edge.animated ? { ...edge, animated: false } : edge
-}
-
-function invertBoardView(oldNodes: TileNodeMap): TileNodeMap {
-  let ox = 0
-  let oy = 0
-  // find max
-  for (const node of Object.values(oldNodes)) {
-    if (node.position.x > ox) {
-      ox = node.position.x
-    }
-    if (node.position.y > oy) {
-      oy = node.position.y
-    }
-  }
-  // invert positions
-  const nodes: TileNodeMap = {}
-  for (const node of Object.values(oldNodes)) {
-    const x = Math.abs(node.position.x - ox)
-    const y = Math.abs(node.position.y - oy)
-    nodes[node.id] = { ...node, position: { x, y } }
-  }
-  return nodes
+  const hidden = isBenchEdge(edge)
+  return edge.animated ? { ...edge, animated: false, hidden } : edge
 }

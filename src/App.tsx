@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
-// Copyright © 2024 André Santos
+// Copyright © 2024 André "Oats" Santos
 
 // -----------------------------------------------------------------------------
 // Imports
@@ -14,7 +14,7 @@ import selectSoundAudio from "./assets/select.wav"
 import Board from "./components/Board.tsx"
 import useAppStore from "./data/store.ts"
 import { AppState } from "./data/types.ts"
-import { GameState } from "./logic.ts"
+import { GameState } from "./logic/logic.ts"
 
 // -----------------------------------------------------------------------------
 // Constants
