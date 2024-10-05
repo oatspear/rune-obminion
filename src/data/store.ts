@@ -115,6 +115,9 @@ const useAppStore = create<AppState>()((set, get) => ({
     if (playerIndex === 0 && state.playerIndex !== 0) {
       const nodes = invertBoardView(state.nodes)
       set({ playerId, playerIndex, nodes })
+    } else if (playerIndex !== 0 && state.playerIndex === 0) {
+      const nodes = invertBoardView(state.nodes)
+      set({ playerId, playerIndex, nodes })
     } else {
       set({ playerId, playerIndex })
     }

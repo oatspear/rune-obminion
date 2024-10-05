@@ -17,6 +17,7 @@ import CombatReportView from "./components/CombatReportView.tsx"
 import useAppStore from "./data/store.ts"
 import { AppState } from "./data/types.ts"
 import { CombatReport, getPlayerIndex } from "./logic/logic.ts"
+import PlayerPortrait from "./components/PlayerPortrait.tsx"
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -35,6 +36,9 @@ export default function App(): JSX.Element {
   const [initialized, setInitialized] = useState(false)
   const [playerIsAttacker, setPlayerIsAttacker] = useState(false)
   const [combatReport, setCombatReport] = useState<CombatReport | null>(null)
+  const [topPlayerId, setTopPlayerId] = useState("")
+  const [bottomPlayerId, setBottomPlayerId] = useState("")
+  const [turnHolder, setTurnHolder] = useState("")
 
   const {
     setBoardState,
@@ -51,6 +55,16 @@ export default function App(): JSX.Element {
         if (game != null) {
           const playerIndex = getPlayerIndex(game, yourPlayerId || "")
           setPlayerInfo(yourPlayerId, playerIndex)
+
+          if (playerIndex === 0) {
+            setTopPlayerId(game.players[1].id)
+            setBottomPlayerId(game.players[0].id)
+          } else {
+            setTopPlayerId(game.players[0].id)
+            setBottomPlayerId(game.players[1].id)
+          }
+          setTurnHolder(game.turnHolder)
+
           const isPlayerTurn = game.turnHolder === yourPlayerId
           setPlayerTurn(isPlayerTurn)
           setFocusedTile(game.attackingTile)
@@ -93,9 +107,21 @@ export default function App(): JSX.Element {
 
   return (
     <>
+      <PlayerPortrait
+        playerId={topPlayerId}
+        hostile
+        active={turnHolder === topPlayerId}
+      />
+
       <ReactFlowProvider>
         <Board />
       </ReactFlowProvider>
+
+      <PlayerPortrait
+        playerId={bottomPlayerId}
+        hostile={false}
+        active={turnHolder === bottomPlayerId}
+      />
 
       <Modal
         isOpen={combatReport != null}

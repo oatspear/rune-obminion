@@ -11,22 +11,66 @@ html {
     Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
-main {
+#root {
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 #board {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: calc(100vh - 4rem);
   background: linear-gradient(to bottom, firebrick, #333 40% 100%);
 }
 
 #board.active {
   background: linear-gradient(to top, dodgerblue, #333 40% 100%);
+}
+
+.player-portrait {
+  width: 100%;
+  height: 2rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0.5rem 0;
+  background-color: #333;
+  border-top: 2px solid dodgerblue;
+}
+
+.player-portrait.active {
+  background-color: dodgerblue;
+  border-top: 2px solid whitesmoke;
+}
+
+.player-portrait.hostile {
+  flex-direction: row-reverse;
+  border-top: 0;
+  border-bottom: 2px solid firebrick;
+}
+
+.player-portrait.hostile.active {
+  background-color: firebrick;
+  border-top: 0;
+  border-bottom: 2px solid whitesmoke;
+}
+
+.player-portrait img {
+  flex: 0 0 auto;
+  width: auto;
+  height: 2rem;
+  margin: 0 0.5rem;
+}
+
+.player-portrait span {
+  flex: 0 0 auto;
+  font-weight: bold;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .react-flow__node {
