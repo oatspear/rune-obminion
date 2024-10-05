@@ -44,6 +44,7 @@ const useAppStore = create<AppState>()((set, get) => ({
   playerIndex: -1,
   isPlayerTurn: false,
   focusedNode: "",
+  attackTargets: [],
   turnTimer: 0,
   nodes: mapNodes(makeDefaultBoardNodes()),
   edges: makeDefaultBoardEdges(),
@@ -79,10 +80,16 @@ const useAppStore = create<AppState>()((set, get) => ({
 
   startDragMovement: (source: string) => {
     const state = get()
-    const reach = getPathableReach(source, state.nodes, state.edges)
+    const nodes = { ...state.nodes }
+    const edges = [...state.edges]
+    if (!state.focusedNode) {
+      const reach = getPathableReach(source, nodes, edges)
+      animateMovementEdges(edges, reach)
+      highlightMovementNodes(nodes, reach)
+    }
     const enemies = findAttackableNodes(source, state.nodes)
-    const edges = animateActionEdges(state.edges, reach, source, enemies)
-    const nodes = highlightActionNodes(state.nodes, reach, enemies)
+    animateAttackEdges(edges, source, enemies)
+    highlightAttackNodes(nodes, enemies)
     set({ edges, nodes })
   },
 
@@ -126,7 +133,9 @@ const useAppStore = create<AppState>()((set, get) => ({
 
   setFocusedTile: (tile: number) => {
     const focusedNode = tile < 0 ? "" : arenaIndexToID(tile)
-    set({ focusedNode })
+    const attackTargets =
+      tile < 0 ? [] : findAttackableNodes(focusedNode, get().nodes)
+    set({ focusedNode, attackTargets })
   },
 
   setTurnTimer: (turnTimer: number) => {
@@ -196,23 +205,23 @@ function resetReachableNodes(oldNodes: TileNodeMap): TileNodeMap {
   return changed ? nodes : oldNodes
 }
 
-function highlightActionNodes(
-  oldNodes: TileNodeMap,
-  reach: UnitReach,
-  enemies: string[]
-): TileNodeMap {
-  const nodes: TileNodeMap = {}
-  for (const node of Object.values(oldNodes)) {
-    nodes[node.id] = changeData(node, { reachable: false, attackable: false })
+function highlightMovementNodes(nodes: TileNodeMap, reach: UnitReach): void {
+  const flatReach = flattenReach(reach)
+  for (const node of Object.values(nodes)) {
+    const reachable = flatReach.includes(node.id)
+    if (node.data.reachable !== reachable) {
+      nodes[node.id] = changeData(node, { reachable })
+    }
   }
-  const reachable = flattenReach(reach)
-  for (const id of reachable) {
-    nodes[id].data.reachable = true
+}
+
+function highlightAttackNodes(nodes: TileNodeMap, enemies: string[]): void {
+  for (const node of Object.values(nodes)) {
+    const attackable = enemies.includes(node.id)
+    if (node.data.attackable !== attackable) {
+      nodes[node.id] = changeData(node, { attackable })
+    }
   }
-  for (const id of enemies) {
-    nodes[id].data.attackable = true
-  }
-  return nodes
 }
 
 function animateMovementEdge(edge: Edge, reach: UnitReach): Edge {
@@ -252,6 +261,12 @@ function animateMovementEdge(edge: Edge, reach: UnitReach): Edge {
   return edge
 }
 
+function animateMovementEdges(edges: Edge[], reach: UnitReach): void {
+  for (let i = 0; i < edges.length; ++i) {
+    edges[i] = animateMovementEdge(edges[i], reach)
+  }
+}
+
 function animateAttackEdge(
   edge: Edge,
   source: string,
@@ -281,19 +296,14 @@ function animateAttackEdge(
   return edge
 }
 
-function animateActionEdges(
-  oldEdges: Edge[],
-  reach: UnitReach,
+function animateAttackEdges(
+  edges: Edge[],
   source: string,
   enemies: string[]
-): Edge[] {
-  const edges: Edge[] = []
-  for (let edge of oldEdges) {
-    edge = animateMovementEdge(edge, reach)
-    edge = animateAttackEdge(edge, source, enemies)
-    edges.push(edge)
+): void {
+  for (let i = 0; i < edges.length; ++i) {
+    edges[i] = animateAttackEdge(edges[i], source, enemies)
   }
-  return edges
 }
 
 function deanimateEdge(edge: Edge): Edge {

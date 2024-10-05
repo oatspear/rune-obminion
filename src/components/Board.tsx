@@ -19,13 +19,14 @@ import {
 import { useShallow } from "zustand/react/shallow"
 
 import { idToIndex, isBenchID, MAX_VIEW_X, MAX_VIEW_Y } from "../data/board.ts"
-import { AppState, TileType } from "../data/types.ts"
+import { AppState, TileNodeMap, TileType } from "../data/types.ts"
 import useAppStore from "../data/store.ts"
 
 import FloatingEdge from "./FloatingEdge.tsx"
 import TileNode from "./TileNode.tsx"
 
 import "@xyflow/react/dist/style.css"
+import { UnitState } from "../logic/logic.ts"
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -58,6 +59,7 @@ export default function Board(): JSX.Element {
     nodes,
     edges,
     focusedNode,
+    playerIndex,
     isPlayerTurn,
     turnTimer,
     onNodesChange,
@@ -67,6 +69,8 @@ export default function Board(): JSX.Element {
   } = useAppStore(useShallow(stateSelector))
 
   const { fitView } = useReactFlow()
+
+  const selectedUnit = useMemo(() => getSelectedUnit(nodes), [nodes])
 
   const onConnectStart: OnConnectStart = useCallback(
     (_event, params) => {
@@ -99,7 +103,9 @@ export default function Board(): JSX.Element {
           return Rune.actions.playUnit({ benchIndex: fromTile, toTile })
         }
         if (enemy == null) {
-          return Rune.actions.moveUnit({ fromTile, toTile })
+          Rune.actions.moveUnit({ fromTile, toTile })
+        } else {
+          Rune.actions.attack({ fromTile, toTile })
         }
       }
     },
@@ -177,11 +183,21 @@ export default function Board(): JSX.Element {
         proOptions={proOptions}
       >
         <Panel position="top-left">
-          <span className="timer">
-            <b>⌛ {turnTimer}</b>
-          </span>
+          <span className="timer">⌛ {turnTimer}</span>
         </Panel>
-        {/*<Panel position="top-right">{isSpawnSelected && <ActionBar />}</Panel>*/}
+        {selectedUnit != null && (
+          <Panel position="top-right">
+            <span
+              className={
+                selectedUnit.owner === playerIndex
+                  ? "unit-stats hostile"
+                  : "unit-stats"
+              }
+            >
+              🦶 {selectedUnit.movement} | ⚔ {selectedUnit.attackDice}
+            </span>
+          </Panel>
+        )}
         {isPlayerTurn && (
           <Panel position="bottom-left">
             <button onClick={endTurn}>👌 End</button>
@@ -212,4 +228,15 @@ function stateSelector(state: AppState) {
     endDragMovement: state.endDragMovement,
     isValidMovement: state.isValidMovement,
   }
+}
+
+function getSelectedUnit(nodes: TileNodeMap): UnitState | null {
+  for (const node of Object.values(nodes)) {
+    if (node.selected) {
+      if (node.data.unit != null) {
+        return node.data.unit
+      }
+    }
+  }
+  return null
 }

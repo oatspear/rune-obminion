@@ -8,9 +8,12 @@
 import { Handle, NodeProps, Position, useConnection } from "@xyflow/react"
 import { useShallow } from "zustand/react/shallow"
 
-import { AppState, TileNodeType } from "../data/types"
+import "animate.css"
+
+import { AppState, TileNodeType, TileType } from "../data/types"
 import useAppStore from "../data/store"
 import { UnitState } from "../logic/logic"
+import { useMemo } from "react"
 
 // -----------------------------------------------------------------------------
 // Component
@@ -20,20 +23,20 @@ export type TileNodeProps = NodeProps<TileNodeType>
 
 export default function TileNode({ id, type, data, selected }: TileNodeProps) {
   const connection = useConnection()
-  const { playerIndex, isPlayerTurn, focusedNode } = useAppStore(
+  const { playerIndex, isPlayerTurn, focusedNode, attackTargets } = useAppStore(
     useShallow(stateSelector)
   )
 
   const unit = data.unit
   const hasPlayerUnit = unit != null && unit.owner === playerIndex
   const isEnabled = !focusedNode || focusedNode === id
-  const isConnectable =
+  const isActionable =
     isPlayerTurn &&
     hasPlayerUnit &&
     isEnabled &&
     !data.reachable &&
-    !data.attackable &&
-    !!selected
+    !data.attackable
+  const isConnectable = isActionable && !!selected
   const isTarget = connection.inProgress && connection.fromNode.id !== id
   const backgroundColor = getBackgroundColor(
     playerIndex,
@@ -42,10 +45,17 @@ export default function TileNode({ id, type, data, selected }: TileNodeProps) {
     isTarget
   )
 
+  const className = useMemo(() => {
+    if (focusedNode && attackTargets.includes(id)) {
+      return "custom-node-body animate__animated animate__heartBeat"
+    }
+    return "custom-node-body"
+  }, [attackTargets, focusedNode, id])
+
   return (
     <div className={`custom-node ${type}`}>
       <div
-        className="custom-node-body"
+        className={className}
         style={{
           backgroundColor,
           borderStyle: isTarget ? "dashed" : "solid",
@@ -64,9 +74,15 @@ export default function TileNode({ id, type, data, selected }: TileNodeProps) {
           isConnectableStart={false}
           isConnectableEnd={!!data.reachable || !!data.attackable}
         />
-        {data.label}
-        {data.unit != null && "*"}
+        {type === TileType.GOAL && "🚩"}
+        {type === TileType.SPAWN && "➕"}
+        {data.unit != null && (data.unit.attackDice == 2 ? "🐺" : data.unit.attackDice == 1 ? "🐈" : "🐻")}
       </div>
+      {isActionable && !selected && (
+        <span className="hint animate__animated animate__bounce animate__infinite">
+          👇
+        </span>
+      )}
     </div>
   )
 }
@@ -80,6 +96,7 @@ function stateSelector(state: AppState) {
     playerIndex: state.playerIndex,
     isPlayerTurn: state.isPlayerTurn,
     focusedNode: state.focusedNode,
+    attackTargets: state.attackTargets,
   }
 }
 
@@ -90,9 +107,9 @@ function getBackgroundColor(
   isTarget: boolean
 ): string {
   if (unit != null) {
-    return playerIndex === unit.owner ? "dodgerblue" : "#ffcce3"
+    return playerIndex === unit.owner ? "cornflowerblue" : "salmon"
   }
-  return isTarget && reachable ? "#ccffe3" : "#ccd9f6"
+  return isTarget && reachable ? "limegreen" : "whitesmoke"
 }
 
 // -----------------------------------------------------------------------------

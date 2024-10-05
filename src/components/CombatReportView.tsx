@@ -18,19 +18,19 @@ export interface CombatReportViewProps {
 
 export default function CombatReportView({
   report,
-  playerIsAttacker,
 }: CombatReportViewProps): JSX.Element {
   const a = report.attackerDice.reduce(add, 0)
   const d = report.defenderDice.reduce(add, 0)
 
+  // <h2>{getResultLabel(report.result, playerIsAttacker)}</h2>
+
   return (
     <div className="combat-report">
-      <h2>{getResultLabel(report.result, playerIsAttacker)}</h2>
       <p>
-        🗡 [{report.attackerDice.map(printDie).join(" + ")}] = <b>{a}</b>
+        🗡 {a} ({report.attackerDice.map(printDie).join(", ")})
       </p>
       <p>
-        🛡 [{report.defenderDice.map(printDie).join(" + ")}] = <b>{d}</b>
+        🛡 {d} ({report.defenderDice.map(printDie).join(", ")})
       </p>
     </div>
   )
@@ -48,7 +48,7 @@ function printDie(value: number): string {
   return `🎲${value}`
 }
 
-function getResultLabel(result: number, playerIsAttacker: boolean): string {
-  result = playerIsAttacker ? result : -result
-  return result > 0 ? "Victory" : result < 0 ? "Defeat" : "Draw"
-}
+// function getResultLabel(result: number, playerIsAttacker: boolean): string {
+//   result = playerIsAttacker ? result : -result
+//   return result > 0 ? "Victory" : result < 0 ? "Defeat" : "Draw"
+// }

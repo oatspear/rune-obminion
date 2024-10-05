@@ -74,7 +74,7 @@ html {
 }
 
 .react-flow__node {
-  background-color: #e6e6e6;
+  background-color: whitesmoke;
   color: #333;
   font-weight: bold;
   font-size: 1.5rem;
@@ -93,7 +93,8 @@ html {
 .custom-node-body {
   min-width: 3rem;
   min-height: 3rem;
-  border: 3px solid black;
+  background-color: whitesmoke;
+  border: 3px solid #333;
   position: relative;
   overflow: hidden;
   border-radius: 10px;
@@ -120,7 +121,7 @@ html {
 .custom-handle {
   width: 100%;
   height: 100%;
-  background: blue;
+  background: #333;
   position: absolute;
   top: 0;
   left: 0;
@@ -147,6 +148,13 @@ html {
   visibility: hidden;
 }
 
+.custom-node .hint {
+  width: 100%;
+  text-align: center;
+  position: absolute;
+  top: -50%;
+}
+
 /*.react-flow__connection-path {
   stroke-width: 6;
   stroke: #e6e6e6;
@@ -164,9 +172,9 @@ html {
   outline: none;
   border-radius: 0.25rem;
   overflow: hidden;
-  background-color: whitesmoke;
-  border: 1px solid gray;
-  color: #333;
+  background-color: #333;
+  border: 2px solid whitesmoke;
+  color: whitesmoke;
 }
 
 .modal-overlay {
@@ -176,6 +184,10 @@ html {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.combat-report {
+  font-weight: bold;
 }
 
 #board button {
@@ -225,4 +237,13 @@ html {
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   border: 1px solid whitesmoke;
+  font-weight: bold;
+}
+
+.unit-stats {
+  background-color: #333;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid whitesmoke;
+  font-weight: bold;
 }

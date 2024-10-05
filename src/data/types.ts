@@ -48,6 +48,7 @@ export interface AppState {
   playerIndex: number
   isPlayerTurn: boolean
   focusedNode: string
+  attackTargets: string[]
   turnTimer: number
   nodes: TileNodeMap
   edges: Edge[]
