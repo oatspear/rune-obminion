@@ -97,7 +97,7 @@ export default function App(): JSX.Element {
         }
 
         if (action != null) {
-          if (action.name === "moveUnit" || action.name === "playUnit"){
+          if (action.name === "moveUnit" || action.name === "playUnit") {
             selectSound.play()
           }
         }
