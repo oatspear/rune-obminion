@@ -44,6 +44,7 @@ const useAppStore = create<AppState>()((set, get) => ({
   playerIndex: -1,
   isPlayerTurn: false,
   focusedNode: "",
+  turnTimer: 0,
   nodes: mapNodes(makeDefaultBoardNodes()),
   edges: makeDefaultBoardEdges(),
 
@@ -126,6 +127,10 @@ const useAppStore = create<AppState>()((set, get) => ({
   setFocusedTile: (tile: number) => {
     const focusedNode = tile < 0 ? "" : arenaIndexToID(tile)
     set({ focusedNode })
+  },
+
+  setTurnTimer: (turnTimer: number) => {
+    set({ turnTimer })
   },
 }))
 

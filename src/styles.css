@@ -177,3 +177,52 @@ html {
   justify-content: center;
   align-items: center;
 }
+
+#board button {
+  align-items: center;
+  background-color: #333;
+  border: 1px solid whitesmoke;
+  border-radius: .25rem;
+  box-shadow: rgba(0, 0, 0, 0.02) 0 1px 3px 0;
+  box-sizing: border-box;
+  color: whitesmoke;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: bold;
+  justify-content: center;
+  line-height: 1;
+  margin: 0;
+  min-height: 1rem;
+  padding: 0.5rem;
+  position: relative;
+  text-decoration: none;
+  transition: all 250ms;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: baseline;
+  width: auto;
+}
+
+#board button:hover,
+#board button:focus {
+  box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
+}
+
+#board button:hover {
+  transform: translateY(-2px);
+}
+
+#board button:active {
+  background-color: darkslategrey;
+  box-shadow: rgba(0, 0, 0, 0.06) 0 2px 4px;
+  transform: translateY(0);
+}
+
+.timer {
+  background-color: #333;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid whitesmoke;
+}

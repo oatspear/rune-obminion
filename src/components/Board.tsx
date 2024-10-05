@@ -5,7 +5,7 @@
 // Imports
 // -----------------------------------------------------------------------------
 
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 import {
   Connection,
   ConnectionLineType,
@@ -14,6 +14,7 @@ import {
   OnConnectStart,
   Panel,
   ReactFlow,
+  useReactFlow,
 } from "@xyflow/react"
 import { useShallow } from "zustand/react/shallow"
 
@@ -21,7 +22,6 @@ import { idToIndex, isBenchID, MAX_VIEW_X, MAX_VIEW_Y } from "../data/board.ts"
 import { AppState, TileType } from "../data/types.ts"
 import useAppStore from "../data/store.ts"
 
-import ActionBar from "./ActionBar.tsx"
 import FloatingEdge from "./FloatingEdge.tsx"
 import TileNode from "./TileNode.tsx"
 
@@ -59,13 +59,14 @@ export default function Board(): JSX.Element {
     edges,
     focusedNode,
     isPlayerTurn,
+    turnTimer,
     onNodesChange,
     startDragMovement,
     endDragMovement,
     isValidMovement,
   } = useAppStore(useShallow(stateSelector))
 
-  const isSpawnSelected = false
+  const { fitView } = useReactFlow()
 
   const onConnectStart: OnConnectStart = useCallback(
     (_event, params) => {
@@ -111,6 +112,18 @@ export default function Board(): JSX.Element {
     },
     [isValidMovement]
   )
+
+  const endTurn = useCallback(() => {
+    if (isPlayerTurn) {
+      Rune.actions.endTurn({})
+    }
+  }, [isPlayerTurn])
+
+  const viewportTransitionOptions = useMemo(() => ({ duration: 250 }), [])
+
+  const handleFitView = useCallback(() => {
+    fitView(viewportTransitionOptions)
+  }, [fitView, viewportTransitionOptions])
 
   /*const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -163,7 +176,20 @@ export default function Board(): JSX.Element {
         autoPanOnConnect={false}
         proOptions={proOptions}
       >
-        <Panel position="bottom-left">{isSpawnSelected && <ActionBar />}</Panel>
+        <Panel position="top-left">
+          <span className="timer">
+            <b>⌛ {turnTimer}</b>
+          </span>
+        </Panel>
+        {/*<Panel position="top-right">{isSpawnSelected && <ActionBar />}</Panel>*/}
+        {isPlayerTurn && (
+          <Panel position="bottom-left">
+            <button onClick={endTurn}>👌 End</button>
+          </Panel>
+        )}
+        <Panel position="bottom-right">
+          <button onClick={handleFitView}>🔍</button>
+        </Panel>
       </ReactFlow>
     </div>
   )
@@ -180,6 +206,7 @@ function stateSelector(state: AppState) {
     focusedNode: state.focusedNode,
     playerIndex: state.playerIndex,
     isPlayerTurn: state.isPlayerTurn,
+    turnTimer: state.turnTimer,
     onNodesChange: state.onNodesChange,
     startDragMovement: state.startDragMovement,
     endDragMovement: state.endDragMovement,

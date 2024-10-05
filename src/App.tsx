@@ -18,6 +18,7 @@ import useAppStore from "./data/store.ts"
 import { AppState } from "./data/types.ts"
 import { CombatReport, getPlayerIndex } from "./logic/logic.ts"
 import PlayerPortrait from "./components/PlayerPortrait.tsx"
+import { TURN_TIME } from "./logic/constants.ts"
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -46,6 +47,7 @@ export default function App(): JSX.Element {
     setPlayerInfo,
     setPlayerTurn,
     setFocusedTile,
+    setTurnTimer,
   } = useAppStore(useShallow(stateSelector))
 
   useEffect(() => {
@@ -72,6 +74,10 @@ export default function App(): JSX.Element {
           // if (changedTurn && isPlayerTurn) {
           //   setCombatReport(null)
           // }
+
+          const timeSpentMs = Rune.gameTime() - game.turnStartedAt
+          const timeLeftMs = Math.max(TURN_TIME - timeSpentMs, 0)
+          setTurnTimer((timeLeftMs / 1000) | 0)
 
           if (action != null || event?.name === "stateSync") {
             setBoardState(game.board)
@@ -151,5 +157,6 @@ function stateSelector(state: AppState) {
     setPlayerInfo: state.setPlayerInfo,
     setPlayerTurn: state.setPlayerTurn,
     setFocusedTile: state.setFocusedTile,
+    setTurnTimer: state.setTurnTimer,
   }
 }

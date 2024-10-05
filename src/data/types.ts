@@ -48,6 +48,7 @@ export interface AppState {
   playerIndex: number
   isPlayerTurn: boolean
   focusedNode: string
+  turnTimer: number
   nodes: TileNodeMap
   edges: Edge[]
   setBoardState: (board: BoardState) => void
@@ -59,4 +60,5 @@ export interface AppState {
   setPlayerTurn: (isPlayerTurn: boolean) => boolean
   setPlayerInfo: (id: PlayerId | undefined, index: number) => void
   setFocusedTile: (tile: number) => void
+  setTurnTimer: (turnTimer: number) => void
 }
