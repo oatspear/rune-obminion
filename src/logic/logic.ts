@@ -154,7 +154,7 @@ export function getPlayerIndex(game: GameState, playerId: PlayerId): number {
   return -1
 }
 
-function getTurnHolderIndex(game: GameState): number {
+export function getTurnHolderIndex(game: GameState): number {
   return getPlayerIndex(game, game.turnHolder)
 }
 
@@ -382,14 +382,17 @@ function buildActionHandlers(): ActionHandlers {
     board: BoardState
   ): void => {
     if (board[tile] != null) {
+      console.log("tile is occupied")
       throw Rune.invalidAction()
     }
     const occupancy = getOccupancyList(board)
     for (const fromTile of fromTiles) {
+      console.log("isTileReachable", tile, fromTile, movement)
       if (isTileReachable(tile, fromTile, movement, occupancy, struct)) {
         return
       }
     }
+    console.log("not reachable")
     throw Rune.invalidAction()
   }
 
@@ -434,23 +437,29 @@ function buildActionHandlers(): ActionHandlers {
     },
 
     playUnit: (args, { game, playerId, allPlayerIds }) => {
+      console.log("checkIsPlayersTurn")
       checkIsPlayersTurn(game, playerId)
+      console.log("checkNotInAttackPhase", game.attackingTile)
       checkNotInAttackPhase(game)
       const playerIndex = getTurnHolderIndex(game)
 
       const bench = game.benches[playerIndex]
       const benchIndex = args.benchIndex
+      console.log("checkIndexWithinBounds", bench, benchIndex)
       checkIndexWithinBounds(bench, benchIndex)
 
       const board = game.board
       const toTile = args.toTile
+      console.log("checkIndexWithinBounds", board, toTile)
       checkIndexWithinBounds(board, toTile)
 
       const unit = bench.splice(benchIndex, 1)[0]
       const spawns = filterFreeTiles(board, findSpawnTiles(playerIndex, struct))
       if (unit.movement === 1) {
+        console.log("checkItemInCollection", spawns, toTile)
         checkItemInCollection(spawns, toTile)
       } else {
+        console.log("checkTileIsReachable", toTile, spawns, unit.movement - 1, board)
         checkTileIsReachable(toTile, spawns, unit.movement - 1, board)
       }
 

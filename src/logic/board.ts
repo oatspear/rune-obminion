@@ -195,23 +195,23 @@ export function isTileReachable(
   struct: ArenaStructure
 ): boolean {
   if (fromTile === targetTile) return true
-  const edges: number[][] = [...struct.edges]
+  const edges: number[][] = struct.edges
   let previous: number[] = [fromTile]
   for (let m = 1; m <= movement; ++m) {
     const reach: number[] = []
     for (let source = 0; source < edges.length; ++source) {
-      const adjacency = edges[source]
+      const adjacency = [...edges[source]]
       for (let j = adjacency.length; j >= 0; --j) {
         let edgeConsumed = false
         const adjacent = adjacency[j]
-        if (previous.indexOf(source) >= 0) {
+        if (previous.includes(source)) {
           edgeConsumed = true
           if (!occupancy[adjacent]) {
             if (adjacent === targetTile) return true
             reach.push(adjacent)
           }
         }
-        if (previous.indexOf(adjacent) >= 0) {
+        if (previous.includes(adjacent)) {
           edgeConsumed = true
           if (!occupancy[source]) {
             if (source === targetTile) return true

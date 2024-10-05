@@ -56,7 +56,7 @@ export interface AppState {
   startDragMovement: (source: string) => void
   endDragMovement: () => void
   isValidMovement: (source: string, target: string) => boolean
-  setPlayerTurn: (isPlayerTurn: boolean) => void
+  setPlayerTurn: (isPlayerTurn: boolean) => boolean
   setPlayerInfo: (id: PlayerId | undefined, index: number) => void
   setFocusedTile: (tile: number) => void
 }

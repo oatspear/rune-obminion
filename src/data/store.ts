@@ -102,8 +102,12 @@ const useAppStore = create<AppState>()((set, get) => ({
     return !!targetTile.data.reachable || !!targetTile.data.attackable
   },
 
-  setPlayerTurn: (isPlayerTurn: boolean) => {
-    set({ isPlayerTurn })
+  setPlayerTurn: (isPlayerTurn: boolean): boolean => {
+    if (isPlayerTurn != get().isPlayerTurn) {
+      set({ isPlayerTurn })
+      return true
+    }
+    return false
   },
 
   setPlayerInfo: (playerId: PlayerId | undefined, playerIndex: number) => {
