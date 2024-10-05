@@ -137,13 +137,13 @@ export function getAdjacentTiles(
   const adjacent: number[] = [...edges[tile]]
   // check everything before
   for (let other = tile - 1; other >= 0; --other) {
-    if (edges[other].indexOf(tile) > 0) {
+    if (edges[other].includes(tile)) {
       adjacent.push(other)
     }
   }
   // check everything after
   for (let other = tile + 1; other < edges.length; ++other) {
-    if (edges[other].indexOf(tile) > 0) {
+    if (edges[other].includes(tile)) {
       adjacent.push(other)
     }
   }

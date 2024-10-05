@@ -5,19 +5,22 @@
 // Imports
 // -----------------------------------------------------------------------------
 
-import { create } from "zustand"
+import { PlayerId } from "rune-sdk"
 import { applyNodeChanges, Edge, NodeChange } from "@xyflow/react"
+import { create } from "zustand"
 
 import { BoardState, UnitState } from "../logic/logic"
 
 import {
+  arenaIndexToID,
   benchTiles,
+  findAttackableNodes,
+  flattenReach,
   getPathableReach,
   idToIndex,
   invertBoardView,
   isBenchEdge,
   isBenchID,
-  isWithinReach,
   makeDefaultBoardEdges,
   makeDefaultBoardNodes,
   mapNodes,
@@ -36,10 +39,14 @@ import {
 // -----------------------------------------------------------------------------
 
 const useAppStore = create<AppState>()((set, get) => ({
+  board: [],
+  playerId: undefined,
   playerIndex: -1,
   isPlayerTurn: false,
+  focusedNode: "",
   nodes: mapNodes(makeDefaultBoardNodes()),
   edges: makeDefaultBoardEdges(),
+
   setBoardState: (board: BoardState) => {
     const nodes: TileNodeMap = { ...get().nodes }
     for (const node of Object.values(nodes)) {
@@ -52,6 +59,7 @@ const useAppStore = create<AppState>()((set, get) => ({
     }
     set({ nodes })
   },
+
   setBenchState: (playerIndex: number, bench: UnitState[]) => {
     const nodes: TileNodeMap = { ...get().nodes }
     const benchStack = [...bench].reverse()
@@ -61,24 +69,29 @@ const useAppStore = create<AppState>()((set, get) => ({
     }
     set({ nodes })
   },
+
   onNodesChange: (changes) => {
     const onlySelect = changes.filter(isSelectChange)
     const previous = Object.values(get().nodes)
     set({ nodes: mapNodes(applyNodeChanges(onlySelect, previous)) })
   },
-  startDragMovement: (sourceId) => {
+
+  startDragMovement: (source: string) => {
     const state = get()
-    const reach = getPathableReach(sourceId, state.nodes, state.edges)
-    const edges = animateMovementEdges(state.edges, reach)
-    const nodes = highlightMovementNodes(state.nodes, reach)
+    const reach = getPathableReach(source, state.nodes, state.edges)
+    const enemies = findAttackableNodes(source, state.nodes)
+    const edges = animateActionEdges(state.edges, reach, source, enemies)
+    const nodes = highlightActionNodes(state.nodes, reach, enemies)
     set({ edges, nodes })
   },
+
   endDragMovement: () => {
     const state = get()
     const edges = state.edges.map(deanimateEdge)
     const nodes = resetReachableNodes(state.nodes)
     set({ edges, nodes })
   },
+
   isValidMovement: (source, target) => {
     const state = get()
     if (!state.isPlayerTurn) return false
@@ -86,36 +99,26 @@ const useAppStore = create<AppState>()((set, get) => ({
     const unit = sourceTile.data.unit
     if (unit == null || unit.owner != state.playerIndex) return false
     const targetTile = state.nodes[target]
-    return !!targetTile.data.reachable
+    return !!targetTile.data.reachable || !!targetTile.data.attackable
   },
-  spawn1p3mUnit: (id: string) => {
-    const state = get()
-    // is it the player's turn?
-    if (!state.isPlayerTurn) return
-    // is the spawn tile occupied?
-    const node = state.nodes[id]
-    if (node.data.unit != null) return
-    const unit: UnitState = {
-      owner: state.playerIndex,
-      movement: 3,
-      attackDice: 1,
-    }
-    const nodes = {
-      ...state.nodes,
-      [id]: changeData(node, { unit }),
-    }
-    set({ nodes })
-  },
+
   setPlayerTurn: (isPlayerTurn: boolean) => {
     set({ isPlayerTurn })
   },
-  setPlayerIndex: (playerIndex: number) => {
+
+  setPlayerInfo: (playerId: PlayerId | undefined, playerIndex: number) => {
     const state = get()
-    let nodes = state.nodes
     if (playerIndex === 0 && state.playerIndex !== 0) {
-      nodes = invertBoardView(nodes)
+      const nodes = invertBoardView(state.nodes)
+      set({ playerId, playerIndex, nodes })
+    } else {
+      set({ playerId, playerIndex })
     }
-    set({ playerIndex, nodes })
+  },
+
+  setFocusedTile: (tile: number) => {
+    const focusedNode = tile < 0 ? "" : arenaIndexToID(tile)
+    set({ focusedNode })
   },
 }))
 
@@ -181,16 +184,21 @@ function resetReachableNodes(oldNodes: TileNodeMap): TileNodeMap {
   return changed ? nodes : oldNodes
 }
 
-function highlightMovementNodes(
+function highlightActionNodes(
   oldNodes: TileNodeMap,
-  reach: UnitReach
+  reach: UnitReach,
+  enemies: string[]
 ): TileNodeMap {
-  const sourceId = reach[0][0]
   const nodes: TileNodeMap = {}
   for (const node of Object.values(oldNodes)) {
-    nodes[node.id] = changeData(node, {
-      reachable: node.id != sourceId && isWithinReach(node.id, reach),
-    })
+    nodes[node.id] = changeData(node, { reachable: false, attackable: false })
+  }
+  const reachable = flattenReach(reach)
+  for (const id of reachable) {
+    nodes[id].data.reachable = true
+  }
+  for (const id of enemies) {
+    nodes[id].data.attackable = true
   }
   return nodes
 }
@@ -212,12 +220,13 @@ function animateMovementEdge(edge: Edge, reach: UnitReach): Edge {
 
   // arena edges
   for (let i = 0; i < reach.length - 1; ++i) {
-    if (reach[i].indexOf(edge.source) >= 0) {
-      return { ...edge, animated: true, hidden: false }
+    if (reach[i].includes(edge.source)) {
+      return { ...edge, style: {}, animated: true, hidden: false }
     }
-    if (reach[i].indexOf(edge.target) >= 0) {
+    if (reach[i].includes(edge.target)) {
       return {
         ...edge,
+        style: {},
         source: edge.target,
         target: edge.source,
         animated: true,
@@ -231,15 +240,51 @@ function animateMovementEdge(edge: Edge, reach: UnitReach): Edge {
   return edge
 }
 
-function animateMovementEdges(oldEdges: Edge[], reach: UnitReach): Edge[] {
+function animateAttackEdge(
+  edge: Edge,
+  source: string,
+  enemies: string[]
+): Edge {
+  if (isBenchEdge(edge)) {
+    return edge
+  }
+
+  // arena edges
+  if (edge.source === source && enemies.includes(edge.target)) {
+    return {
+      ...edge,
+      style: { stroke: "firebrick", fill: "firebrick" },
+      animated: true,
+    }
+  }
+  if (edge.target === source && enemies.includes(edge.source)) {
+    return {
+      ...edge,
+      style: { stroke: "firebrick", fill: "firebrick" },
+      source: edge.target,
+      target: edge.source,
+      animated: true,
+    }
+  }
+  return edge
+}
+
+function animateActionEdges(
+  oldEdges: Edge[],
+  reach: UnitReach,
+  source: string,
+  enemies: string[]
+): Edge[] {
   const edges: Edge[] = []
-  for (const edge of oldEdges) {
-    edges.push(animateMovementEdge(edge, reach))
+  for (let edge of oldEdges) {
+    edge = animateMovementEdge(edge, reach)
+    edge = animateAttackEdge(edge, source, enemies)
+    edges.push(edge)
   }
   return edges
 }
 
 function deanimateEdge(edge: Edge): Edge {
   const hidden = isBenchEdge(edge)
-  return edge.animated ? { ...edge, animated: false, hidden } : edge
+  return edge.animated ? { ...edge, style: {}, animated: false, hidden } : edge
 }

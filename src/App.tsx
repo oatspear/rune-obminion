@@ -5,8 +5,8 @@
 // Imports
 // -----------------------------------------------------------------------------
 
-import { useEffect, useState } from "react"
-import { PlayerId } from "rune-sdk"
+import { useCallback, useEffect, useState } from "react"
+import Modal from "react-modal"
 import { ReactFlowProvider } from "@xyflow/react"
 import { useShallow } from "zustand/react/shallow"
 
@@ -14,7 +14,7 @@ import selectSoundAudio from "./assets/select.wav"
 import Board from "./components/Board.tsx"
 import useAppStore from "./data/store.ts"
 import { AppState } from "./data/types.ts"
-import { GameState } from "./logic/logic.ts"
+import { getPlayerIndex } from "./logic/logic.ts"
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -22,25 +22,34 @@ import { GameState } from "./logic/logic.ts"
 
 const selectSound = new Audio(selectSoundAudio)
 
+Modal.setAppElement("#root")
+
 // -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
 
 export default function App(): JSX.Element {
-  const [game, setGame] = useState<GameState>()
-  const [yourPlayerId, setYourPlayerId] = useState<PlayerId | undefined>()
+  const [initialized, setInitialized] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
 
-  const { setBoardState, setBenchState, setPlayerIndex, setPlayerTurn } =
-    useAppStore(useShallow(stateSelector))
+  const {
+    setBoardState,
+    setBenchState,
+    setPlayerInfo,
+    setPlayerTurn,
+    setFocusedTile,
+  } = useAppStore(useShallow(stateSelector))
 
   useEffect(() => {
     Rune.initClient({
       onChange: ({ game, action, event, yourPlayerId }) => {
-        setGame(game)
-        setYourPlayerId(yourPlayerId)
-
-        setPlayerIndex(game.playerIds.indexOf(yourPlayerId || ""))
-        setPlayerTurn(!!yourPlayerId && game.lastMovePlayerId !== yourPlayerId)
+        setInitialized(game != null)
+        if (game != null) {
+          const playerIndex = getPlayerIndex(game, yourPlayerId || "")
+          setPlayerInfo(yourPlayerId, playerIndex)
+          setPlayerTurn(game.turnHolder === yourPlayerId)
+          setFocusedTile(game.attackingTile)
+        }
 
         if (action != null || event?.name === "stateSync") {
           setBoardState(game.board)
@@ -56,9 +65,11 @@ export default function App(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (!game) {
+  const onRequestClose = useCallback(() => setModalOpen(false), [])
+
+  if (!initialized) {
     // Rune only shows your game after an onChange() so no need for loading screen
-    return <>{yourPlayerId}</>
+    return <></>
   }
 
   return (
@@ -66,6 +77,14 @@ export default function App(): JSX.Element {
       <ReactFlowProvider>
         <Board />
       </ReactFlowProvider>
+      <Modal
+        isOpen={modalOpen}
+        className="modal-content"
+        overlayClassName="modal-overlay"
+        onRequestClose={onRequestClose}
+      >
+        <p>This is my modal content</p>
+      </Modal>
     </>
   )
 }
@@ -78,7 +97,8 @@ function stateSelector(state: AppState) {
   return {
     setBoardState: state.setBoardState,
     setBenchState: state.setBenchState,
-    setPlayerIndex: state.setPlayerIndex,
+    setPlayerInfo: state.setPlayerInfo,
     setPlayerTurn: state.setPlayerTurn,
+    setFocusedTile: state.setFocusedTile,
   }
 }

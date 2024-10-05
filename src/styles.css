@@ -22,11 +22,11 @@ main {
 #board {
   width: 100vw;
   height: 100vh;
-  background-color: darkolivegreen;
+  background: linear-gradient(to bottom, firebrick, #333 40% 100%);
 }
 
 #board.active {
-  background-color: cadetblue;
+  background: linear-gradient(to top, dodgerblue, #333 40% 100%);
 }
 
 .react-flow__node {
@@ -112,4 +112,24 @@ main {
   border: 1px solid whitesmoke;
   background-color: #333;
   font-weight: bold;
+}
+
+.modal-content {
+  flex: 0 1 auto;
+  padding: 1rem;
+  outline: none;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  background-color: whitesmoke;
+  border: 1px solid gray;
+  color: #333;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0px;
+  background-color: rgba(64, 64, 64, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

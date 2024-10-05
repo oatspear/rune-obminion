@@ -57,6 +57,7 @@ export default function Board(): JSX.Element {
   const {
     nodes,
     edges,
+    focusedNode,
     isPlayerTurn,
     onNodesChange,
     startDragMovement,
@@ -77,15 +78,32 @@ export default function Board(): JSX.Element {
 
   const onConnectEnd = endDragMovement
 
-  const onConnect = useCallback((connection: Connection) => {
-    const fromTile = idToIndex(connection.source)
-    const toTile = idToIndex(connection.target)
-    if (isBenchID(connection.source)) {
-      Rune.actions.playUnit({ benchIndex: fromTile, toTile })
-    } else {
-      Rune.actions.moveUnit({ fromTile, toTile })
-    }
-  }, [])
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      if (!isPlayerTurn || connection.source === connection.target) {
+        return
+      }
+      if (!!focusedNode && focusedNode != connection.source) {
+        return
+      }
+      const fromTile = idToIndex(connection.source)
+      const toTile = idToIndex(connection.target)
+      const enemy = nodes[connection.target].data.unit
+      if (focusedNode) {
+        if (focusedNode === connection.source && enemy != null) {
+          Rune.actions.attack({ fromTile, toTile })
+        }
+      } else {
+        if (isBenchID(connection.source)) {
+          return Rune.actions.playUnit({ benchIndex: fromTile, toTile })
+        }
+        if (enemy == null) {
+          return Rune.actions.moveUnit({ fromTile, toTile })
+        }
+      }
+    },
+    [focusedNode, isPlayerTurn, nodes]
+  )
 
   const isValidConnection = useCallback(
     (connection: Connection | Edge) => {
@@ -159,6 +177,7 @@ function stateSelector(state: AppState) {
   return {
     nodes: state.nodes,
     edges: state.edges,
+    focusedNode: state.focusedNode,
     playerIndex: state.playerIndex,
     isPlayerTurn: state.isPlayerTurn,
     onNodesChange: state.onNodesChange,

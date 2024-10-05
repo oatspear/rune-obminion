@@ -8,6 +8,7 @@
 import { Edge, Node, NodeChange } from "@xyflow/react"
 
 import { BoardState, UnitState } from "../logic/logic"
+import { PlayerId } from "rune-sdk"
 
 // -----------------------------------------------------------------------------
 // Type Declarations
@@ -26,6 +27,7 @@ export type TileNodeData = {
   label: string
   unit: UnitState | null
   reachable?: boolean
+  attackable?: boolean
   owner?: number
 }
 
@@ -42,19 +44,19 @@ export type EdgeArrayMutator = (edges: Edge[]) => Edge[]
 export type SetEdgesPayload = Edge[] | EdgeArrayMutator
 
 export interface AppState {
+  playerId: PlayerId | undefined
   playerIndex: number
   isPlayerTurn: boolean
+  focusedNode: string
   nodes: TileNodeMap
   edges: Edge[]
   setBoardState: (board: BoardState) => void
   setBenchState: (playerIndex: number, bench: UnitState[]) => void
   onNodesChange: (changes: NodeChange<TileNodeType>[]) => void
-  startDragMovement: (sourceId: string) => void
+  startDragMovement: (source: string) => void
   endDragMovement: () => void
   isValidMovement: (source: string, target: string) => boolean
-  // onConnect: OnConnect
-  // onDropNode: (x: number, y: number) => void
-  spawn1p3mUnit: (id: string) => void
   setPlayerTurn: (isPlayerTurn: boolean) => void
-  setPlayerIndex: (i: number) => void
+  setPlayerInfo: (id: PlayerId | undefined, index: number) => void
+  setFocusedTile: (tile: number) => void
 }

@@ -20,12 +20,20 @@ export type TileNodeProps = NodeProps<TileNodeType>
 
 export default function TileNode({ id, type, data, selected }: TileNodeProps) {
   const connection = useConnection()
-  const { playerIndex, isPlayerTurn } = useAppStore(useShallow(stateSelector))
+  const { playerIndex, isPlayerTurn, focusedNode } = useAppStore(
+    useShallow(stateSelector)
+  )
 
   const unit = data.unit
   const hasPlayerUnit = unit != null && unit.owner === playerIndex
+  const isEnabled = !focusedNode || focusedNode === id
   const isConnectable =
-    isPlayerTurn && hasPlayerUnit && !data.reachable && !!selected
+    isPlayerTurn &&
+    hasPlayerUnit &&
+    isEnabled &&
+    !data.reachable &&
+    !data.attackable &&
+    !!selected
   const isTarget = connection.inProgress && connection.fromNode.id !== id
   const backgroundColor = getBackgroundColor(
     playerIndex,
@@ -54,7 +62,7 @@ export default function TileNode({ id, type, data, selected }: TileNodeProps) {
           position={Position.Left}
           type="target"
           isConnectableStart={false}
-          isConnectableEnd={!!data.reachable}
+          isConnectableEnd={!!data.reachable || !!data.attackable}
         />
         {data.label}
         {data.unit != null && "*"}
@@ -68,7 +76,11 @@ export default function TileNode({ id, type, data, selected }: TileNodeProps) {
 // -----------------------------------------------------------------------------
 
 function stateSelector(state: AppState) {
-  return { playerIndex: state.playerIndex, isPlayerTurn: state.isPlayerTurn }
+  return {
+    playerIndex: state.playerIndex,
+    isPlayerTurn: state.isPlayerTurn,
+    focusedNode: state.focusedNode,
+  }
 }
 
 function getBackgroundColor(

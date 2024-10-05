@@ -10,6 +10,7 @@ import { Edge, XYPosition } from "@xyflow/react"
 import {
   ArenaStructure,
   ArenaTileType,
+  getAdjacentTiles,
   getArenaStructure,
 } from "../logic/board"
 import { BENCH_SIZE, PLAYER1, PLAYER2 } from "../logic/constants"
@@ -256,17 +257,37 @@ export function getPathableReach(
   return reach
 }
 
-// export function flattenReach(reach: UnitReach): string[] {
-//   const flattened: string[] = []
-//   for (const step of reach) {
-//     for (const id of step) {
-//       if (flattened.indexOf(id) < 0) {
-//         flattened.push(id)
-//       }
-//     }
-//   }
-//   return flattened
-// }
+export function flattenReach(reach: UnitReach): string[] {
+  const flattened: string[] = []
+  for (const step of reach) {
+    for (const id of step) {
+      if (!flattened.includes(id)) {
+        flattened.push(id)
+      }
+    }
+  }
+  return flattened
+}
+
+export function findAttackableNodes(
+  source: string,
+  nodes: TileNodeMap
+): string[] {
+  const attacker = nodes[source].data.unit
+  if (attacker == null || isBenchID(source)) {
+    return []
+  }
+  const adjacency = getAdjacentTiles(idToIndex(source), arenaStructure)
+  const targets: string[] = []
+  for (const tile of adjacency) {
+    const node = nodes[arenaIndexToID(tile)]
+    const defender = node.data.unit
+    if (defender != null && defender.owner != attacker.owner) {
+      targets.push(node.id)
+    }
+  }
+  return targets
+}
 
 export function findSpawnNodes(playerIndex: number): string[] {
   if (playerIndex === 0) return findNodes(ArenaTileType.PLAYER1_SPAWN)
