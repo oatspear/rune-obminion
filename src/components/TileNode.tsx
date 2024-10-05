@@ -5,6 +5,7 @@
 // Imports
 // -----------------------------------------------------------------------------
 
+import { useMemo } from "react"
 import { Handle, NodeProps, Position, useConnection } from "@xyflow/react"
 import { useShallow } from "zustand/react/shallow"
 
@@ -13,7 +14,13 @@ import "animate.css"
 import { AppState, TileNodeType, TileType } from "../data/types"
 import useAppStore from "../data/store"
 import { UnitState } from "../logic/logic"
-import { useMemo } from "react"
+
+import archerBlue from "../assets/archer-blue.png"
+import archerRed from "../assets/archer-red.png"
+import mageBlue from "../assets/mage-blue.png"
+import mageRed from "../assets/mage-red.png"
+import warriorBlue from "../assets/warrior-blue.png"
+import warriorRed from "../assets/warrior-red.png"
 
 // -----------------------------------------------------------------------------
 // Component
@@ -44,6 +51,11 @@ export default function TileNode({ id, type, data, selected }: TileNodeProps) {
     data.reachable,
     isTarget
   )
+  const hostility =
+    (type === TileType.GOAL || type === TileType.SPAWN) &&
+    data.owner != playerIndex
+      ? "hostile"
+      : ""
 
   const className = useMemo(() => {
     if (focusedNode && attackTargets.includes(id)) {
@@ -53,7 +65,7 @@ export default function TileNode({ id, type, data, selected }: TileNodeProps) {
   }, [attackTargets, focusedNode, id])
 
   return (
-    <div className={`custom-node ${type}`}>
+    <div className={`custom-node ${type} ${hostility}`}>
       <div
         className={className}
         style={{
@@ -74,9 +86,11 @@ export default function TileNode({ id, type, data, selected }: TileNodeProps) {
           isConnectableStart={false}
           isConnectableEnd={!!data.reachable || !!data.attackable}
         />
-        {type === TileType.GOAL && "🚩"}
-        {type === TileType.SPAWN && "➕"}
-        {data.unit != null && (data.unit.attackDice == 2 ? "🐺" : data.unit.attackDice == 1 ? "🐈" : "🐻")}
+        {/*type === TileType.GOAL && "🚩"*/}
+        {/*type === TileType.SPAWN && "➕"*/}
+        {data.unit != null && (
+          <img src={getUnitImage(data.unit, playerIndex)} />
+        )}
       </div>
       {isActionable && !selected && (
         <span className="hint animate__animated animate__bounce animate__infinite">
@@ -106,10 +120,22 @@ function getBackgroundColor(
   reachable: boolean | undefined,
   isTarget: boolean
 ): string {
-  if (unit != null) {
-    return playerIndex === unit.owner ? "cornflowerblue" : "salmon"
+  // if (unit != null) {
+  //   return playerIndex === unit.owner ? "cornflowerblue" : "salmon"
+  // }
+  return isTarget && reachable ? "limegreen" : ""
+}
+
+function getUnitImage(unit: UnitState, playerIndex: number): string {
+  const hostile = unit.owner != playerIndex
+  switch (unit.attackDice) {
+    case 1:
+      return hostile ? archerRed : archerBlue
+    case 2:
+      return hostile ? warriorRed : warriorBlue
+    default:
+      return hostile ? mageRed : mageBlue
   }
-  return isTarget && reachable ? "limegreen" : "whitesmoke"
 }
 
 // -----------------------------------------------------------------------------

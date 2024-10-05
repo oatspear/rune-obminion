@@ -104,16 +104,41 @@ html {
   font-weight: bold;
 }
 
+.custom-node-body > img {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+}
+
 .custom-node.goal .custom-node-body {
-  border-color: firebrick;
+  background-image: url(assets/flag.png);
+  background-size: 75% 75%;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .custom-node.spawn .custom-node-body {
-  border-color: navy;
+  background-image: url(assets/plus.png);
+  background-size: 75% 75%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.custom-node.goal .custom-node-body,
+.custom-node.spawn .custom-node-body {
+  border-color: whitesmoke;
+  background-color: dodgerblue;
+}
+
+.custom-node.goal.hostile .custom-node-body,
+.custom-node.spawn.hostile .custom-node-body {
+  border-color: whitesmoke;
+  background-color: firebrick;
 }
 
 .react-flow__node.selected .custom-node-body {
-  border-color: lightskyblue;
+  background-color: lightskyblue;
 }
 
 /*.react-flow__handle { visibility: hidden; }*/
@@ -153,6 +178,7 @@ html {
   text-align: center;
   position: absolute;
   top: -50%;
+  pointer-events: none;
 }
 
 /*.react-flow__connection-path {
