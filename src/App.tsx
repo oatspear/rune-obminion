@@ -12,13 +12,14 @@ import { useShallow } from "zustand/react/shallow"
 
 import selectSoundAudio from "./assets/select.wav"
 import fightSoundAudio from "./assets/fight.wav"
+import instructions from "./assets/instructions.png"
 import Board from "./components/Board.tsx"
 import CombatReportView from "./components/CombatReportView.tsx"
+import PlayerPortrait from "./components/PlayerPortrait.tsx"
 import useAppStore from "./data/store.ts"
 import { AppState } from "./data/types.ts"
-import { CombatReport, getPlayerIndex } from "./logic/logic.ts"
-import PlayerPortrait from "./components/PlayerPortrait.tsx"
 import { TURN_TIME } from "./logic/constants.ts"
+import { CombatReport, getPlayerIndex } from "./logic/logic.ts"
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -36,6 +37,7 @@ Modal.setAppElement("#root")
 export default function App(): JSX.Element {
   const [initialized, setInitialized] = useState(false)
   const [playerIsAttacker, setPlayerIsAttacker] = useState(false)
+  const [seenInstructions, setSeenInstructions] = useState(false)
   const [combatReport, setCombatReport] = useState<CombatReport | null>(null)
   const [topPlayerId, setTopPlayerId] = useState("")
   const [bottomPlayerId, setBottomPlayerId] = useState("")
@@ -50,6 +52,8 @@ export default function App(): JSX.Element {
     setTurnTimer,
   } = useAppStore(useShallow(stateSelector))
 
+  const showInstructions = initialized && !seenInstructions
+
   useEffect(() => {
     Rune.initClient({
       onChange: ({ game, action, event, yourPlayerId }) => {
@@ -57,6 +61,8 @@ export default function App(): JSX.Element {
         if (game != null) {
           const playerIndex = getPlayerIndex(game, yourPlayerId || "")
           setPlayerInfo(yourPlayerId, playerIndex)
+
+          // && game.persisted[yourPlayerId].sessionCount === 0
 
           if (playerIndex === 0) {
             setTopPlayerId(game.players[1].id)
@@ -106,7 +112,10 @@ export default function App(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const onRequestClose = useCallback(() => setCombatReport(null), [])
+  const onRequestClose = useCallback(() => {
+    setCombatReport(null)
+    setSeenInstructions(true)
+  }, [])
 
   if (!initialized) {
     // Rune only shows your game after an onChange() so no need for loading screen
@@ -132,7 +141,7 @@ export default function App(): JSX.Element {
       />
 
       <Modal
-        isOpen={combatReport != null}
+        isOpen={combatReport != null || showInstructions}
         className="modal-content"
         overlayClassName="modal-overlay"
         onRequestClose={onRequestClose}
@@ -143,6 +152,7 @@ export default function App(): JSX.Element {
             playerIsAttacker={playerIsAttacker}
           />
         )}
+        {showInstructions && <img src={instructions} />}
       </Modal>
     </>
   )

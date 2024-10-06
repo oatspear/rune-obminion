@@ -329,7 +329,7 @@ Rune.initLogic({
       benches: [buildDefaultBench(0), buildDefaultBench(1)],
       turnHolder: allPlayerIds[0],
       players: allPlayerIds.map(makePlayer),
-      turnStartedAt: Rune.gameTime() + 5, // 5 second lenciency at the start
+      turnStartedAt: Rune.gameTime() + 15_000, // 15 second lenciency at the start
       attackingTile: NOT_ATTACKING,
     }
   },
