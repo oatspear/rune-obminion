@@ -340,7 +340,7 @@ Rune.initLogic({
     }
     const now = Rune.gameTime()
     const elapsed = now - game.turnStartedAt
-    if (elapsed > TURN_TIME) {
+    if (elapsed > TURN_TIME || !game.turnHolder) {
       swapTurn(game, now)
     }
   },
@@ -351,20 +351,28 @@ Rune.initLogic({
     playerJoined: (playerId, { game }) => {
       game.persisted[playerId].sessionCount =
         (game.persisted[playerId].sessionCount || 0) + 1
+      for (const player of game.players) {
+        if (!player.id) {
+          player.id = playerId
+          break
+        }
+      }
     },
 
     playerLeft: (playerId, { game, allPlayerIds }) => {
       const players = game.players
       for (let i = players.length - 1; i >= 0; --i) {
         if (players[i].id === playerId) {
-          players.splice(i, 1)
+          // players.splice(i, 1)
+          players[i].id = ""
         }
       }
-      if (players.length < 2) {
-        declareWinner(players[0].id, allPlayerIds)
-      }
-      if (game.turnHolder === playerId) {
-        swapTurn(game)
+      if (players.length > 0) {
+        if (players.length === 1) {
+          declareWinner(players[0].id, allPlayerIds)
+        } else if (game.turnHolder === playerId) {
+          swapTurn(game)
+        }
       }
     },
   },
